@@ -1,0 +1,56 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+    - 46980_func-dna-data-ingestion
+  paths:
+    include:
+    - functionApp/func-dna-generic-ingestion*
+
+pool:
+  vmImage: ubuntu-latest
+
+strategy:
+  matrix:
+    #Python311:
+    #  python.version: '3.11'
+    Python312:
+      python.version: '3.12'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+      versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+- script: |
+      ls -l $(System.DefaultWorkingDirectory)/
+      ls -l $(System.DefaultWorkingDirectory)/functionApp
+      ls -l $(System.DefaultWorkingDirectory)/functionApp/func-dna-generic-ingestion
+      pwd
+      mkdir -p $(System.DefaultWorkingDirectory)/.python_packages/lib/site-packages
+      python -m pip install --upgrade pip
+      pip install -r $(System.DefaultWorkingDirectory)/functionApp/func-dna-generic-ingestion/requirements.txt -t $(System.DefaultWorkingDirectory)/functionApp/func-dna-generic-ingestion/.python_packages/lib/site-packages
+      ls -lrta $(System.DefaultWorkingDirectory)/functionApp/func-dna-generic-ingestion
+      ls -lrta $(System.DefaultWorkingDirectory)/functionApp/func-dna-generic-ingestion/.python_packages/lib/site-packages
+  displayName: 'Install dependencies'
+
+- task: ArchiveFiles@2
+  displayName: 'Archive files'
+  inputs:
+      rootFolderOrFile: $(System.DefaultWorkingDirectory)/functionApp/func-dna-generic-ingestion
+      includeRootFolder: false
+      archiveType: zip
+      archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId)-$(python.version).zip
+      replaceExistingArchive: true
+
+- task: PublishBuildArtifacts@1
+  inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'
+

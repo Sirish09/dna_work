@@ -1,0 +1,62 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+    - 46980_func-dna-data-ingestion
+  paths:
+    include:
+    - functionApp/dna/*
+
+pool:
+  vmImage: ubuntu-latest
+
+strategy:
+  matrix:
+    Python311:
+      python.version: '3.11'
+    #Python312:
+      #python.version: '3.12'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+      versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+- script: |
+    cd $(System.DefaultWorkingDirectory)/functionApp/dna
+    echo "=== Creating fresh virtual environment ==="
+    python -m venv temp_env
+    source temp_env/bin/activate
+    pip install --upgrade pip
+    pip install azure-functions adal azure-identity pyodbc pytz
+    echo "=== Verification in venv ==="
+    python -c "import pyodbc; print('pyodbc works in venv')"
+    deactivate
+    echo "=== Copying packages to function directory ==="
+    cp -r temp_env/lib/python*/site-packages/* .
+    rm -rf temp_env
+    echo "=== Final verification ==="
+    python -c "import pyodbc; print('pyodbc works in function dir')" || echo "Import failed - checking what was copied"
+    ls -la | head -20
+  displayName: 'Install dependencies - Virtual Environment'
+
+- task: ArchiveFiles@2
+  displayName: 'Archive files'
+  inputs:
+      rootFolderOrFile: $(System.DefaultWorkingDirectory)/functionApp/dna
+      includeRootFolder: false
+      archiveType: zip
+      archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId)-$(python.version).zip
+      replaceExistingArchive: true
+
+- task: PublishBuildArtifacts@1
+  inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'
+
