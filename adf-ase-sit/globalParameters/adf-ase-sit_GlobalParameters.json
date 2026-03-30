@@ -1,0 +1,10 @@
+{
+	"env": {
+		"type": "string",
+		"value": "sit"
+	},
+	"FnO_URL": {
+		"type": "string",
+		"value": "https://apac-fo-uat.sandbox.operations.dynamics.com"
+	}
+}

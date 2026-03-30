@@ -1,0 +1,4739 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ase-sit"
+		},
+		"Trg-Brnze-Tumbling_properties_pipeline_parameters_ReportDate": {
+			"type": "string",
+			"defaultValue": "9999_12_31"
+		},
+		"Trg-Brnze-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"type": "string",
+			"defaultValue": "cat_lakehouse_metaverse"
+		},
+		"Trg-Gold-Tumbling_properties_pipeline_parameters_ReportDate": {
+			"type": "string",
+			"defaultValue": "9999_12_31"
+		},
+		"Trg-Gold-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"type": "string",
+			"defaultValue": "cat_lakehouse_metaverse"
+		},
+		"Trg-Silver-Tumbling_properties_pipeline_parameters_ReportDate": {
+			"type": "string",
+			"defaultValue": "9999_12_31"
+		},
+		"Trg-Silver-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"type": "string",
+			"defaultValue": "cat_lakehouse_metaverse"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_dataverse_tables_init')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Dataverse Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_dataverse_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Dataverse Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Dataverse Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/bronze_table_init.py') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"cat_schema": "CAT_BRONZE_CE_DEV01",
+											"table_name": {
+												"value": "@item().Dataverse_Table",
+												"type": "Expression"
+											},
+											"initial_file_name": {
+												"value": "@concat(item().Dataverse_Table,'_',formatDateTime(utcnow(),'yyyy_MM_dd'))",
+												"type": "Expression"
+											},
+											"lakehouse_schema": "cat_lakehouse_metaverse_dev01"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Initialise"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-25T04:31:23Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_finops_tables_init')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get FinOps Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_finops_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get FinOps Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get FinOps Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/bronze_table_init.py') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"cat_schema": "CAT_BRONZE_FO_DEV01",
+											"table_name": {
+												"value": "@item().FinOps_Table",
+												"type": "Expression"
+											},
+											"initial_file_name": {
+												"value": "@toLower(concat(item().FinOps_Table,'_',formatDateTime(utcnow(),'yyyy_MM_dd')))",
+												"type": "Expression"
+											},
+											"lakehouse_schema": "cat_lakehouse_metaverse_dev01"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Initialise"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-25T04:31:02Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_fo_stream_history_load')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Stream Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_stream_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Stream Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Stream Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/StreamToBronze_history_load') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"FileName": {
+												"value": "@item().FileName",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"FilePath": {
+												"value": "@item().FilePath",
+												"type": "Expression"
+											},
+											"SchemaPath": {
+												"value": "@item().SchemaPath",
+												"type": "Expression"
+											},
+											"d365_env": "apac-fo-uat.sandbox.operations.dynamics.com"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Initialise"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-25T04:31:02Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_fo_stream_tables_init')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Stream Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_stream_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Stream Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Stream Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/streaming_table_init.py') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"cat_schema": "CAT_BRONZE_FO_DEV01",
+											"table_name": {
+												"value": "@item().FileName",
+												"type": "Expression"
+											},
+											"FileName": {
+												"value": "@item().FileName",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"FilePath": {
+												"value": "@item().FilePath",
+												"type": "Expression"
+											},
+											"SchemaPath": {
+												"value": "@item().SchemaPath",
+												"type": "Expression"
+											},
+											"TargetSchema": "cat_bronze_fo_logicalenv",
+											"domain": "finance",
+											"d365_env": "apac-fo-sit.sandbox.operations.dynamics.com"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Initialise"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-25T04:31:02Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_maximo_table_init')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Maximo Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_maximo_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Maximo Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Maximo Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/bronze_table_init.py') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"cat_schema": "CAT_BRONZE_MX_DEV01",
+											"table_name": {
+												"value": "@item().Maximo_Table",
+												"type": "Expression"
+											},
+											"initial_file_name": {
+												"value": "@toLower(concat(item().Maximo_Table,'_', pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"lakehouse_schema": "cat_lakehouse_metaverse_dev01"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ReportDate": {
+						"type": "string",
+						"defaultValue": "2022_02_17"
+					},
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse_dev01"
+					}
+				},
+				"variables": {
+					"rpt_date": {
+						"type": "String",
+						"defaultValue": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')"
+					}
+				},
+				"folder": {
+					"name": "maximo"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_xref_tables_init')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Xref Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_xref_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Xref Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Xref Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/bronze_table_init.py') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"cat_schema": "CAT_BRONZE_FO_DEV01",
+											"table_name": {
+												"value": "@item().Xref_Table",
+												"type": "Expression"
+											},
+											"initial_file_name": {
+												"value": "@toLower(concat(item().Xref_Table,'_',formatDateTime(utcnow(),'yyyy_MM_dd')))",
+												"type": "Expression"
+											},
+											"lakehouse_schema": "cat_lakehouse_metaverse_dev01",
+											"other": "xref"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Initialise"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-25T04:31:02Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataverse_to_Staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Dataverse Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_dataverse_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Table Loop",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Dataverse Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Set ReportDate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Dataverse Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 2,
+							"activities": [
+								{
+									"name": "Copy Dataverse",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "CommonDataServiceForAppsSource"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_apac_dataverse",
+											"type": "DatasetReference",
+											"parameters": {
+												"entity_name": "@item().Dataverse_Table"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_apac_lakehouse_ce_staging",
+											"type": "DatasetReference",
+											"parameters": {
+												"tbl_name": "@item().Dataverse_Table",
+												"file_name": "@concat(item().Dataverse_Table,'_',variables('reportDate'))"
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "Set ReportDate",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "reportDate",
+							"value": {
+								"value": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"reportDate": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Pattern/Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-12-20T11:36:18Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline-copy-sensei')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "CopySenseiProject",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "CommonDataServiceForAppsSource"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "sensei_project"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "senseiproject.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						]
+					},
+					{
+						"name": "CopySenseiRisk",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "CommonDataServiceForAppsSource"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "sensei_risk"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "senseirisk.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						]
+					},
+					{
+						"name": "CopySenseiUser",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "CommonDataServiceForAppsSource"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "systemuser"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "senseiuser.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy Owner",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "CommonDataServiceForAppsSource"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "owner"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "senseiowner.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy String Map",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "CommonDataServiceForAppsSource",
+								"query": "<fetch>\n<entity name=\"stringmap\">\n<filter type=\"or\">\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sensei_risk\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_riskstatus\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_recordtype\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_riskcategory\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_riskphase\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_scoringscheme\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_PIDLevelCurrent\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_PIDLevelTarget\" />\n<condition attribute =\"attributename\" operator=\"eq\" value=\"sc_RiskStrategy\" />\n</filter>\n</entity>\n</fetch>\n"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "stringmap"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "senseistringmap.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						]
+					},
+					{
+						"name": "CopySenseiIssue",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "CommonDataServiceForAppsSource"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "sensei_issue"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "senseiissue.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "integration/projects"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-04-12T05:31:56Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline_copy_gl')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Copy new and changed files only by using LastModifiedDate",
+				"activities": [
+					{
+						"name": "GetVISA",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "GL/VISA"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterVISADirectory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetVISA",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetVISA').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEachVISAFiles",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterVISADirectory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterVISADirectory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CopyVISAFile",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/VISA",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_sl_destination_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/VISA",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "ArchiveVISAFile",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "CopyVISAFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "FileServerWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/VISA",
+												"File": "@item().name"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/VISA/Archived",
+												"File": "@item().name"
+											}
+										}
+									]
+								},
+								{
+									"name": "DeleteVISAFile",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "ArchiveVISAFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/VISA",
+												"File": "@item().name"
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "FileServerReadSettings",
+											"recursive": false,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetLPR",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "GL/LPR"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterLPRDirectory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetLPR",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetLPR').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEachLPRFiles",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterLPRDirectory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterLPRDirectory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CopyLPRFile",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/LPR",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_sl_destination_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/LPR",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "ArchiveLPRFile",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "CopyLPRFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "FileServerWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/LPR",
+												"File": "@item().name"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/LPR/Archived",
+												"File": "@item().name"
+											}
+										}
+									]
+								},
+								{
+									"name": "DeleteLPRFile",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "ArchiveLPRFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "GL/LPR",
+												"File": "@item().name"
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "FileServerReadSettings",
+											"recursive": false,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"SO_ASIC_SourceFilesPath": {
+						"type": "String",
+						"defaultValue": "FTI\\ASIC"
+					}
+				},
+				"folder": {
+					"name": "integration/finance"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline_copy_so')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Copy new and changed files only by using LastModifiedDate",
+				"activities": [
+					{
+						"name": "For each ASIC files",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterASICDirectory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterASICDirectory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CopyASICFile",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/ASIC",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_sl_destination_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "SO/ASIC",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "ArchiveASICFile",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "CopyASICFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "FileServerWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/ASIC",
+												"File": "@item().name"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/ASIC/Archived",
+												"File": "@item().name"
+											}
+										}
+									]
+								},
+								{
+									"name": "DeleteASICFile",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "ArchiveASICFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/ASIC",
+												"File": "@item().name"
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "FileServerReadSettings",
+											"recursive": false,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Get ASIC Files",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "FTI\\ASIC"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterASICDirectory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Get ASIC Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get ASIC Files').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get AIRDAT Files",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "FTI\\AIRDAT"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterAIRDATDirectory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Get AIRDAT Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get AIRDAT Files').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "For each AIRDAT files",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterAIRDATDirectory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterAIRDATDirectory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy file to blob storage AIRDAT",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/AIRDAT",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_sl_destination_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "SO/AIRDAT",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Move to archive AIRDAT",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Copy file to blob storage AIRDAT",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "FileServerWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/AIRDAT",
+												"File": "@item().name"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/AIRDAT/Archived",
+												"File": "@item().name"
+											}
+										}
+									]
+								},
+								{
+									"name": "DeleteAIRDATFiles",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "Move to archive AIRDAT",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/AIRDAT",
+												"File": "@item().name"
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "FileServerReadSettings",
+											"recursive": false,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetCPCSO",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "FTI\\CPC"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterCPCDirectory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetCPCSO",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetCPCSO').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEachCPCFiles",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterCPCDirectory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterCPCDirectory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CopyCPCFile",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CPC",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_sl_destination_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "SO/CPC",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "ArchiveCPCFile",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "CopyCPCFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "FileServerWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CPC",
+												"File": "@item().name"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CPC/Archived",
+												"File": "@item().name"
+											}
+										}
+									]
+								},
+								{
+									"name": "DeleteCPCFile",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "ArchiveCPCFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CPC",
+												"File": "@item().name"
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "FileServerReadSettings",
+											"recursive": false,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetCSC",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "FTI\\CSC"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterCSCDirectory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetCSC",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetCSC').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEachCSCFiles",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterCSCDirectory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterCSCDirectory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CopyCSCFile",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CSC",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_sl_destination_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "SO/CSC",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "ArchiveCSCFile",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "CopyCSCFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "FileServerWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CSC",
+												"File": "@item().name"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CSC/Archived",
+												"File": "@item().name"
+											}
+										}
+									]
+								},
+								{
+									"name": "DeleteCSCFile",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "ArchiveCSCFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/CSC",
+												"File": "@item().name"
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "FileServerReadSettings",
+											"recursive": false,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetEXV",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "FTI\\EXV"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterEXVDirectory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetEXV",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetEXV').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEachEXVFiles",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterEXVDirectory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterEXVDirectory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CopyEXVFile",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/EXV",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_sl_destination_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "SO/EXV",
+												"File": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "ArchiveEXVFile",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "CopyEXVFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "FileServerReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "FileServerWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/EXV",
+												"File": "@item().name"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/EXV/Archived",
+												"File": "@item().name"
+											}
+										}
+									]
+								},
+								{
+									"name": "DeleteEXVFile",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "ArchiveEXVFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_so_gl_source_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"Directory": "FTI/EXV",
+												"File": "@item().name"
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "FileServerReadSettings",
+											"recursive": false,
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetA2020",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_so_gl_source_directory",
+								"type": "DatasetReference",
+								"parameters": {
+									"Directory": "FTI\\A2020"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "FileServerReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "FilterA2020Directory",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetA2020",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetA2020').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().type,'File')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEachA2020Files",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FilterA2020Directory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FilterA2020Directory').output.Value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "If Condition-Check File Name",
+									"type": "IfCondition",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@bool(startswith(item().name,'FTI'))",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "ArchiveA2020File",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "FileServerReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "FileServerWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_so_gl_source_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "FTI/A2020",
+															"File": "@item().name"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_so_gl_source_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "FTI/A2020/Archived",
+															"File": "@item().name"
+														}
+													}
+												]
+											},
+											{
+												"name": "DeleteA2020File",
+												"type": "Delete",
+												"dependsOn": [
+													{
+														"activity": "ArchiveA2020File",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"dataset": {
+														"referenceName": "ds_so_gl_source_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "FTI/A2020",
+															"File": "@item().name"
+														}
+													},
+													"enableLogging": false,
+													"storeSettings": {
+														"type": "FileServerReadSettings",
+														"recursive": false,
+														"enablePartitionDiscovery": false
+													}
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "CopyA2020File_FTI",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "FileServerReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_so_gl_source_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "FTI/A2020",
+															"File": {
+																"value": "@item().name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_so_sl_destination_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "SO/A2020",
+															"File": {
+																"value": "@item().name",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "ArchiveA2020File_FTI",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "CopyA2020File_FTI",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "FileServerReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "FileServerWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_so_gl_source_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "FTI/A2020",
+															"File": "@item().name"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_so_gl_source_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "FTI/A2020/Archived",
+															"File": "@item().name"
+														}
+													}
+												]
+											},
+											{
+												"name": "DeleteA2020File_FTI",
+												"type": "Delete",
+												"dependsOn": [
+													{
+														"activity": "ArchiveA2020File_FTI",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"dataset": {
+														"referenceName": "ds_so_gl_source_file",
+														"type": "DatasetReference",
+														"parameters": {
+															"Directory": "FTI/A2020",
+															"File": "@item().name"
+														}
+													},
+													"enableLogging": false,
+													"storeSettings": {
+														"type": "FileServerReadSettings",
+														"recursive": false,
+														"enablePartitionDiscovery": false
+													}
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"SO_ASIC_SourceFilesPath": {
+						"type": "String",
+						"defaultValue": "FTI\\ASIC"
+					}
+				},
+				"folder": {
+					"name": "integration/finance"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_flatten_json')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_apac_fno",
+								"type": "DatasetReference"
+							},
+							"name": "FnO"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_apac_lakehouse_finance_staging",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "flatten1"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     file_name as string",
+						"}",
+						"source(output(",
+						"          body as ({@odata.context} as string, value as ({} as string)[]),",
+						"          headers as [string,string]",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     httpMethod: 'GET',",
+						"     timeout: 300,",
+						"     requestInterval: 0,",
+						"     paginationRules: ['absoluteUrl' -> 'body.{@odata.nextLink}', 'EndCondition:body.value' -> 'Empty'],",
+						"     responseFormat: ['type' -> 'json', 'documentForm' -> 'arrayOfDocuments']) ~> FnO",
+						"FnO foldDown(unroll(body.value, body.value),",
+						"     mapColumn(",
+						"          each(body.value,match(and(and(notEquals(name,\"value\"),notEquals(name,\"\")),notEquals(name,\"@odata.etag\"))))",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten1",
+						"flatten1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     partitionFileNames:[($file_name)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/FinOps_Extraction')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetEntityCount",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat(pipeline().globalParameters.FnO_URL,'/data/',pipeline().parameters.FinOpsTable,'?cross-company=true&$count=true&$top=0')",
+								"type": "Expression"
+							},
+							"connectVia": {
+								"referenceName": "apac-azure-ir-sit",
+								"type": "IntegrationRuntimeReference"
+							},
+							"method": "GET",
+							"headers": {},
+							"linkedServices": [
+								{
+									"referenceName": "Link_APAC_CAT_FnO",
+									"type": "LinkedServiceReference"
+								}
+							],
+							"authentication": {
+								"type": "ServicePrincipal",
+								"userTenant": "3f1f92c1-3232-46bb-b79d-8fe22e40c73c",
+								"username": "a69effca-15c7-4285-b005-391b39bb6c1a",
+								"resource": {
+									"value": "@pipeline().globalParameters.FnO_URL",
+									"type": "Expression"
+								},
+								"password": {
+									"type": "AzureKeyVaultSecret",
+									"store": {
+										"referenceName": "Link_APAC_CAT_KV",
+										"type": "LinkedServiceReference"
+									},
+									"secretName": "apac-sp-datalakehouse-clientsecret-sit"
+								}
+							}
+						}
+					},
+					{
+						"name": "SetEntityCount",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetEntityCount",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "EntityCount",
+							"value": {
+								"value": "@string(json(replace(replace(string(activity('GetEntityCount').output),'@',''),'.','0')).odata0count)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "RecordsForExtraction",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "SetEntityCount",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(variables('EntityCount'),'0'))",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "df_flatten_json",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "1.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "df_flatten_json",
+											"type": "DataFlowReference",
+											"parameters": {
+												"file_name": {
+													"value": "'@{toLower(concat(pipeline().parameters.FinOpsTable,'_',formatDateTime(pipeline().parameters.ExtractDateTime,'yyyy_MM_ddTHHmmss')))}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"FnO": {
+													"entity": {
+														"value": "@pipeline().parameters.FinOpsTable",
+														"type": "Expression"
+													}
+												},
+												"sink1": {
+													"tbl_name": "@pipeline().parameters.FinOpsTable"
+												}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "Fine"
+									}
+								},
+								{
+									"name": "LogAuditJobReadyToStart",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "df_flatten_json",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"ReportDate": {
+												"value": "@formatDateTime(pipeline().parameters.ExtractDateTime,'yyyy_MM_dd')",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Ready to Start",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"JobName": {
+												"value": "@pipeline().parameters.FinOpsTable",
+												"type": "Expression"
+											},
+											"ExtractFileName": {
+												"value": "@toLower(concat(pipeline().parameters.FinOpsTable,'_',formatDateTime(pipeline().parameters.ExtractDateTime,'yyyy_MM_ddTHHmmss')))",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"FinOpsTable": {
+						"type": "string"
+					},
+					"ExtractDateTime": {
+						"type": "string"
+					},
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					}
+				},
+				"variables": {
+					"EntityCount": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Pattern/Extract"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_flatten_json')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline-arm-sensei-final')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF-ARM-Joins",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_arm_riskissues",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"ARMFolders": {},
+									"ARMRisks": {},
+									"ARMImpact": {},
+									"ARMPlan": {},
+									"ARMAssessment": {},
+									"WriteARMDataFinal": {}
+								},
+								"linkedServiceParameters": {
+									"WriteARMDataFinal": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									}
+								}
+							},
+							"staging": {},
+							"integrationRuntime": {
+								"referenceName": "apac-azure-ir-sit",
+								"type": "IntegrationRuntimeReference"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "ARM-Risk-Lookup",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Split",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_lookup_risk",
+								"type": "DataFlowReference",
+								"parameters": {
+									"ARMURL": {
+										"value": "'@{pipeline().parameters.ARMURL}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"SourceARM": {},
+									"SourceStringMap": {},
+									"SourceSenseiOwner": {},
+									"SourceSenseiRisk": {},
+									"SourceProject": {},
+									"SourceSenseiuser": {},
+									"SourceSenseiIssue": {},
+									"SinkRisk": {}
+								},
+								"linkedServiceParameters": {
+									"SourceARM": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceStringMap": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiOwner": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiRisk": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceProject": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiuser": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiIssue": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SinkRisk": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									}
+								}
+							},
+							"staging": {},
+							"integrationRuntime": {
+								"referenceName": "apac-azure-ir-sit",
+								"type": "IntegrationRuntimeReference"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Execute-Sensei",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pipeline-copy-sensei",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Final-ATOM-to-Risk",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ARM-Risk-Lookup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "CommonDataServiceForAppsSink",
+								"writeBatchSize": 10,
+								"writeBehavior": "upsert"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['SenseiTitle']"
+										},
+										"sink": {
+											"name": "sensei_name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskOwnerId']"
+										},
+										"sink": {
+											"name": "sensei_assignedto",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRiskID']"
+										},
+										"sink": {
+											"name": "sensei_riskid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskId']"
+										},
+										"sink": {
+											"name": "sc_atomriskid",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiProjectId']"
+										},
+										"sink": {
+											"name": "sensei_project",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiScoringScheme']"
+										},
+										"sink": {
+											"name": "sc_scoringscheme",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRiskStrategy']"
+										},
+										"sink": {
+											"name": "sc_riskstrategy",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRiskPhase']"
+										},
+										"sink": {
+											"name": "sc_riskphase",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiLevelCurrent']"
+										},
+										"sink": {
+											"name": "sc_pidlevelcurrent",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiLevelTarget']"
+										},
+										"sink": {
+											"name": "sc_pidleveltarget",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRecordType']"
+										},
+										"sink": {
+											"name": "sc_recordtype",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRiskStatus']"
+										},
+										"sink": {
+											"name": "sc_riskstatus",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CurrentRiskScore']"
+										},
+										"sink": {
+											"name": "sc_pidscorecurrent",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['TargetRiskScore']"
+										},
+										"sink": {
+											"name": "sc_pidscoretarget",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['TargetColorRef']"
+										},
+										"sink": {
+											"name": "sc_pidcolourtarget",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CurrentColorRef']"
+										},
+										"sink": {
+											"name": "sc_pidcolourcurrent",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseilRiskURL']"
+										},
+										"sink": {
+											"name": "sc_riskrecordurl",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskLastReview']"
+										},
+										"sink": {
+											"name": "sc_lastreviewdate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['PlanCompletion']"
+										},
+										"sink": {
+											"name": "sc_completiondate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskAssessment']"
+										},
+										"sink": {
+											"name": "sensei_duedate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskDescription']"
+										},
+										"sink": {
+											"name": "sensei_description",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskEffect']"
+										},
+										"sink": {
+											"name": "sensei_triggerdescription",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskCause']"
+										},
+										"sink": {
+											"name": "sensei_mitigationplan",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRiskCategory']"
+										},
+										"sink": {
+											"name": "sc_riskcategory",
+											"type": "Int32"
+										}
+									}
+								],
+								"collectionReference": ""
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "ARMFinalRisk.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "sensei_risk"
+								}
+							}
+						]
+					},
+					{
+						"name": "ARM-Issue-Lookup",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Split",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_lookup_issue",
+								"type": "DataFlowReference",
+								"parameters": {
+									"ARMURL": "\"https://apac.activeriskmanager.com/arm/1/\""
+								},
+								"datasetParameters": {
+									"SourceARM": {},
+									"SourceStringMap": {},
+									"SourceSenseiOwner": {},
+									"SourceSenseiRisk": {},
+									"SourceProject": {},
+									"SourceSenseiuser": {},
+									"SourceSenseiIssue": {},
+									"SinkIssues": {}
+								},
+								"linkedServiceParameters": {
+									"SourceARM": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceStringMap": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiOwner": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiRisk": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceProject": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiuser": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SourceSenseiIssue": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									},
+									"SinkIssues": {
+										"linkedService": {
+											"env": "sit",
+											"region": "ase"
+										}
+									}
+								}
+							},
+							"staging": {},
+							"integrationRuntime": {
+								"referenceName": "apac-azure-ir-sit",
+								"type": "IntegrationRuntimeReference"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Split",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "DF-ARM-Joins",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Execute-Sensei",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 1
+						}
+					},
+					{
+						"name": "Final-ATOM-to-Issue",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ARM-Issue-Lookup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "CommonDataServiceForAppsSink",
+								"writeBatchSize": 10,
+								"writeBehavior": "upsert"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['SenseiTitle']"
+										},
+										"sink": {
+											"name": "sensei_name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskOwnerId']"
+										},
+										"sink": {
+											"name": "sensei_assignedto",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiIssueID']"
+										},
+										"sink": {
+											"name": "sensei_issueid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskId']"
+										},
+										"sink": {
+											"name": "sc_atomissueid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiProjectId']"
+										},
+										"sink": {
+											"name": "sensei_project",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiScoringScheme']"
+										},
+										"sink": {
+											"name": "sc_issuescoringscheme",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiIssueStrategy']"
+										},
+										"sink": {
+											"name": "sc_issuestrategy",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiIssuePhase']"
+										},
+										"sink": {
+											"name": "sc_issuephase",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiLevelCurrent']"
+										},
+										"sink": {
+											"name": "sc_pidlevelcurrent",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRecordType']"
+										},
+										"sink": {
+											"name": "sc_recordtype",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiIssueStatus']"
+										},
+										"sink": {
+											"name": "sc_issuestatus",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CurrentRiskScore']"
+										},
+										"sink": {
+											"name": "sc_pidscorecurrent",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CurrentColorRef']"
+										},
+										"sink": {
+											"name": "sc_pidcolourcurrent",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseilIssueURL']"
+										},
+										"sink": {
+											"name": "sc_issuerecordurl"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskLastReview']"
+										},
+										"sink": {
+											"name": "sc_lastreviewdate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['PlanCompletion']"
+										},
+										"sink": {
+											"name": "sc_completiondate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskAssessment']"
+										},
+										"sink": {
+											"name": "sensei_duedate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RiskDescription']"
+										},
+										"sink": {
+											"name": "sensei_description",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SenseiRiskCategory']"
+										},
+										"sink": {
+											"name": "sc_issuecategory",
+											"type": "Int32"
+										}
+									}
+								],
+								"collectionReference": ""
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_arm_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "ARMFinalIssue.json",
+									"DirectoryName": "ProjectRisk"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_apac_sensei",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "sensei_issue"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ARMURL": {
+						"type": "string",
+						"defaultValue": "https://apac.activeriskmanager.com/arm/2/"
+					}
+				},
+				"folder": {
+					"name": "integration/projects"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-04-12T05:31:57Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pipeline-copy-sensei')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-AeroDW-to-Staging')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Aero_dw_to_Staging",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-03-29T22:30:00",
+						"timeZone": "AUS Eastern Standard Time",
+						"schedule": {
+							"minutes": [
+								30
+							],
+							"hours": [
+								1
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-Brnze-Tumbling')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "Staging_to_Bronze",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"ReportDate": "[parameters('Trg-Brnze-Tumbling_properties_pipeline_parameters_ReportDate')]",
+						"AuditSchema": "[parameters('Trg-Brnze-Tumbling_properties_pipeline_parameters_AuditSchema')]"
+					}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Minute",
+					"interval": 5,
+					"startTime": "2022-06-28T15:00:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 1,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-CE-to-Staging')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "dataverse_to_Staging",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2021-12-21T06:00:00",
+						"timeZone": "AUS Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/dataverse_to_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-D365DataLake-to-Staging')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "DataLake_to_Staging",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-03-04T05:41:00",
+						"timeZone": "AUS Eastern Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								5
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-Gold-Tumbling')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "Silver_to_Gold",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"ReportDate": "[parameters('Trg-Gold-Tumbling_properties_pipeline_parameters_ReportDate')]",
+						"AuditSchema": "[parameters('Trg-Gold-Tumbling_properties_pipeline_parameters_AuditSchema')]"
+					}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Minute",
+					"interval": 5,
+					"startTime": "2022-06-30T07:29:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 1,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-Silver-Tumbling')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "Bronze_to_Silver",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"ReportDate": "[parameters('Trg-Silver-Tumbling_properties_pipeline_parameters_ReportDate')]",
+						"AuditSchema": "[parameters('Trg-Silver-Tumbling_properties_pipeline_parameters_AuditSchema')]"
+					}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Minute",
+					"interval": 5,
+					"startTime": "2022-06-28T15:29:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 1,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-Xref-to-Staging')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Xref_to_Staging",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-03-08T04:46:00",
+						"timeZone": "AUS Eastern Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								5
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

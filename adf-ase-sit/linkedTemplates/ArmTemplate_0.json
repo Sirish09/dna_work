@@ -1,0 +1,589 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ase-sit"
+		},
+		"Link_APAC_CAT_AERO_DW_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Link_APAC_CAT_AERO_DW'"
+		},
+		"Link_APAC_CAT_AERO_DW_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'Link_APAC_CAT_AERO_DW'"
+		},
+		"Link_APAC_CAT_Maximo_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Link_APAC_CAT_Maximo'"
+		},
+		"Link_APAC_CAT_Maximo_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'Link_APAC_CAT_Maximo'"
+		},
+		"Link_APAC_CAT_KV_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "@{concat('https://kv-ase-',linkedService().env,'.vault.azure.net/')}"
+		},
+		"apac-onprem-ir-sit_properties_typeProperties_linkedInfo_resourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourcegroups/rg-apac-ingest-ase-dev01/providers/Microsoft.DataFactory/factories/adf-ase-dev01/integrationruntimes/apac-onprem-shir-dev01"
+		},
+		"Link_APAC_CAT_AERO_DW_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "Melair\\Edppowerbi"
+		},
+		"Link_APAC_CAT_Maximo_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "melair\\xwu_admin"
+		},
+		"Link_APAC_CAT_OnPremFileShare_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "\\\\airport.local\\mel\\Repository\\D365\\Test\\Outbox"
+		},
+		"Link_APAC_CAT_OnPremFileShare_properties_typeProperties_userId": {
+			"type": "string",
+			"defaultValue": "Melair\\edp_svc"
+		},
+		"blob-bronze-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/bronzelakehouseasesit"
+		},
+		"blob-bronze-adf-ase-ase-pep_properties_groupId": {
+			"type": "string",
+			"defaultValue": "dfs"
+		},
+		"blob-bronze-adf-ase-ase-pep_properties_fqdns": {
+			"type": "array",
+			"defaultValue": [
+				"bronzelakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-control-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/controllakehouseasesit"
+		},
+		"blob-control-adf-ase-ase-pep_properties_groupId": {
+			"type": "string",
+			"defaultValue": "dfs"
+		},
+		"blob-control-adf-ase-ase-pep_properties_fqdns": {
+			"type": "array",
+			"defaultValue": [
+				"controllakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-gold-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/goldlakehouseasesit"
+		},
+		"blob-gold-adf-ase-ase-pep_properties_groupId": {
+			"type": "string",
+			"defaultValue": "dfs"
+		},
+		"blob-gold-adf-ase-ase-pep_properties_fqdns": {
+			"type": "array",
+			"defaultValue": [
+				"goldlakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-silver-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/silverlakehouseasesit"
+		},
+		"blob-silver-adf-ase-ase-pep_properties_groupId": {
+			"type": "string",
+			"defaultValue": "dfs"
+		},
+		"blob-silver-adf-ase-ase-pep_properties_fqdns": {
+			"type": "array",
+			"defaultValue": [
+				"silverlakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-staging-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/staginglakehouseasesit"
+		},
+		"blob-staging-adf-ase-ase-pep_properties_groupId": {
+			"type": "string",
+			"defaultValue": "dfs"
+		},
+		"blob-staging-adf-ase-ase-pep_properties_fqdns": {
+			"type": "array",
+			"defaultValue": [
+				"staginglakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"file-meldrive-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/meldriveasesit"
+		},
+		"file-meldrive-adf-ase-ase-pep_properties_groupId": {
+			"type": "string",
+			"defaultValue": "dfs"
+		},
+		"file-meldrive-adf-ase-ase-pep_properties_fqdns": {
+			"type": "array",
+			"defaultValue": [
+				"meldriveasesit.dfs.core.windows.net"
+			]
+		},
+		"kv-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-kv-ase-sit/providers/Microsoft.KeyVault/vaults/kv-ase-sit"
+		},
+		"kv-adf-ase-ase-pep_properties_groupId": {
+			"type": "string",
+			"defaultValue": "vault"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_KV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"env": {
+						"type": "string",
+						"defaultValue": "sit"
+					}
+				},
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('Link_APAC_CAT_KV_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/apac-onprem-ir-sit')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"description": "MELCATSHIRTST01 AND MELCATSHIRTST02",
+				"typeProperties": {
+					"linkedInfo": {
+						"resourceId": "[parameters('apac-onprem-ir-sit_properties_typeProperties_linkedInfo_resourceId')]",
+						"authorizationType": "Rbac"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
+			"apiVersion": "2018-06-01",
+			"properties": {},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_AERO_DW')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('Link_APAC_CAT_AERO_DW_connectionString')]",
+					"userName": "[parameters('Link_APAC_CAT_AERO_DW_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Link_APAC_CAT_AERO_DW_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "apac-onprem-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/apac-onprem-ir-sit')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_Maximo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "\"melsqltsttp4.airport.local\", \"maxtst7s\", Schema=\"dbo\"",
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('Link_APAC_CAT_Maximo_connectionString')]",
+					"userName": "[parameters('Link_APAC_CAT_Maximo_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Link_APAC_CAT_Maximo_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "apac-onprem-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/apac-onprem-ir-sit')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_OnPremFileShare')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "FileServer",
+				"typeProperties": {
+					"host": "[parameters('Link_APAC_CAT_OnPremFileShare_properties_typeProperties_host')]",
+					"userId": "[parameters('Link_APAC_CAT_OnPremFileShare_properties_typeProperties_userId')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "Link_APAC_CAT_KV",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"env": "sit"
+							}
+						},
+						"secretName": "apac-integration-onprem-svcpass"
+					}
+				},
+				"connectVia": {
+					"referenceName": "apac-onprem-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/apac-onprem-ir-sit')]",
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_KV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0,
+							"cleanup": true
+						}
+					}
+				},
+				"managedVirtualNetwork": {
+					"type": "ManagedVirtualNetworkReference",
+					"referenceName": "default"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/apac-azure-ir-sit')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "Australia Southeast",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 10,
+							"cleanup": false
+						},
+						"pipelineExternalComputeScaleProperties": {
+							"timeToLive": 60
+						}
+					}
+				},
+				"managedVirtualNetwork": {
+					"type": "ManagedVirtualNetworkReference",
+					"referenceName": "default"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default/blob-bronze-adf-ase-ase-pep')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"privateLinkResourceId": "[parameters('blob-bronze-adf-ase-ase-pep_properties_privateLinkResourceId')]",
+				"groupId": "[parameters('blob-bronze-adf-ase-ase-pep_properties_groupId')]",
+				"fqdns": "[parameters('blob-bronze-adf-ase-ase-pep_properties_fqdns')]"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default/blob-control-adf-ase-ase-pep')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"privateLinkResourceId": "[parameters('blob-control-adf-ase-ase-pep_properties_privateLinkResourceId')]",
+				"groupId": "[parameters('blob-control-adf-ase-ase-pep_properties_groupId')]",
+				"fqdns": "[parameters('blob-control-adf-ase-ase-pep_properties_fqdns')]"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default/blob-gold-adf-ase-ase-pep')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"privateLinkResourceId": "[parameters('blob-gold-adf-ase-ase-pep_properties_privateLinkResourceId')]",
+				"groupId": "[parameters('blob-gold-adf-ase-ase-pep_properties_groupId')]",
+				"fqdns": "[parameters('blob-gold-adf-ase-ase-pep_properties_fqdns')]"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default/blob-silver-adf-ase-ase-pep')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"privateLinkResourceId": "[parameters('blob-silver-adf-ase-ase-pep_properties_privateLinkResourceId')]",
+				"groupId": "[parameters('blob-silver-adf-ase-ase-pep_properties_groupId')]",
+				"fqdns": "[parameters('blob-silver-adf-ase-ase-pep_properties_fqdns')]"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default/blob-staging-adf-ase-ase-pep')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"privateLinkResourceId": "[parameters('blob-staging-adf-ase-ase-pep_properties_privateLinkResourceId')]",
+				"groupId": "[parameters('blob-staging-adf-ase-ase-pep_properties_groupId')]",
+				"fqdns": "[parameters('blob-staging-adf-ase-ase-pep_properties_fqdns')]"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default/file-meldrive-adf-ase-ase-pep')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"privateLinkResourceId": "[parameters('file-meldrive-adf-ase-ase-pep_properties_privateLinkResourceId')]",
+				"groupId": "[parameters('file-meldrive-adf-ase-ase-pep_properties_groupId')]",
+				"fqdns": "[parameters('file-meldrive-adf-ase-ase-pep_properties_fqdns')]"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default/kv-adf-ase-ase-pep')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"privateLinkResourceId": "[parameters('kv-adf-ase-ase-pep_properties_privateLinkResourceId')]",
+				"groupId": "[parameters('kv-adf-ase-ase-pep_properties_groupId')]"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_aero_dw')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_AERO_DW",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					},
+					"schema": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "aero_dw"
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_AERO_DW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_onprem_maximo_tst')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Maximo",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"tbl_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "maximo"
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "",
+					"table": {
+						"value": "@dataset().tbl_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Maximo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_so_gl_source_directory')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_OnPremFileShare",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Directory": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "integration/finance"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "FileServerLocation",
+						"folderPath": {
+							"value": "@dataset().Directory",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_OnPremFileShare')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_so_gl_source_file')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_OnPremFileShare",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Directory": {
+						"type": "string"
+					},
+					"File": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "integration/finance"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "FileServerLocation",
+						"fileName": {
+							"value": "@dataset().File",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().Directory",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_OnPremFileShare')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_ADB')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-6109327156885175.15.azuredatabricks.net",
+					"authentication": "MSI",
+					"workspaceResourceId": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-compute-ase-sit/providers/Microsoft.Databricks/workspaces/adb-ase-sit",
+					"existingClusterId": "0416-050139-8f18pr40"
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/apac-azure-ir-sit')]"
+			]
+		}
+	]
+}

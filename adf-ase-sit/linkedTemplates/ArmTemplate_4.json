@@ -1,0 +1,323 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ase-sit"
+		},
+		"Trg-FO-To-Staging-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"type": "string",
+			"defaultValue": "cat_lakehouse_metaverse"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/FinOps_to_Staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Set ExtractDateTime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Get FinOps Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get FinOps Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 12,
+							"activities": [
+								{
+									"name": "Job Control Table",
+									"description": "Use the tablename passed from Control CSV to lookup the high water mark",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureDatabricksDeltaLakeSource",
+											"query": {
+												"value": "@concat('select HighWaterMark from ', pipeline().parameters.AuditSchema, '_', pipeline().globalParameters.env,'.job where JobName = ''',item().FinOps_Table,'''')",
+												"type": "Expression"
+											}
+										},
+										"dataset": {
+											"referenceName": "ds_meta_cotrol_tbl",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"firstRowOnly": false
+									}
+								},
+								{
+									"name": "Set HighWaterMark",
+									"description": "",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Job Control Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "HighWaterMark",
+										"value": {
+											"value": "@split(string(json(string(activity('Job Control Table').output)).value),'\"')[3]",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set NextExtractDateTime",
+									"description": "Add the ExtractFrequencyMinutes to HighWaterMark to set target time for next extraction",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set HighWaterMark",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "NextExtractDateTime",
+										"value": {
+											"value": "@string(addminutes(formatDateTime(variables('HighWaterMark'),'yyyy-MM-ddTHH:mm:ss'), int(item().ExtractFrequencyMinutes)))",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "If Condition1",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Set NextExtractDateTime",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@greaterOrEquals(ticks(variables('ExtractDateTime')), ticks(variables('NextExtractDateTime')) )",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "FinOps_Extraction",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "FinOps_Extraction",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"FinOpsTable": {
+															"value": "@item().FinOps_Table",
+															"type": "Expression"
+														},
+														"ExtractDateTime": {
+															"value": "@variables('ExtractDateTime')",
+															"type": "Expression"
+														},
+														"AuditSchema": {
+															"value": "@pipeline().parameters.AuditSchema",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Set ExtractDateTime",
+						"description": "UTC Time plus 10",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ExtractDateTime",
+							"value": {
+								"value": "@convertFromUtc(utcnow(), 'AUS Eastern Standard Time')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get FinOps Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_finops_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					}
+				},
+				"variables": {
+					"ExtractDateTime": {
+						"type": "String"
+					},
+					"EntityCount": {
+						"type": "String"
+					},
+					"HighWaterMark": {
+						"type": "String"
+					},
+					"NextExtractDateTime": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Pattern/Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-21T05:45:39Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-FO-To-Staging-Tumbling')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "FinOps_to_Staging",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"AuditSchema": "[parameters('Trg-FO-To-Staging-Tumbling_properties_pipeline_parameters_AuditSchema')]"
+					}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Hour",
+					"interval": 1,
+					"startTime": "2022-06-28T15:00:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 1,
+					"retryPolicy": {
+						"intervalInSeconds": 0
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/FinOps_to_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg-FO-to-Staging')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "FinOps_to_Staging",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-01-21T05:01:00",
+						"timeZone": "AUS Eastern Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								4
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/FinOps_to_Staging')]"
+			]
+		}
+	]
+}

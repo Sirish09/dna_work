@@ -1,0 +1,177 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-ase-sit"
+		},
+		"Link_APAC_CAT_AERO_DW_connectionString": {
+			"value": ""
+		},
+		"Link_APAC_CAT_AERO_DW_password": {
+			"value": ""
+		},
+		"Link_APAC_CAT_ARM_password": {
+			"value": ""
+		},
+		"Link_APAC_CAT_Maximo_connectionString": {
+			"value": ""
+		},
+		"Link_APAC_CAT_Maximo_password": {
+			"value": ""
+		},
+		"Link_APAC_CAT_Xref_connectionString": {
+			"value": ""
+		},
+		"Link_APAC_CAT_AERO_DW_properties_typeProperties_userName": {
+			"value": "Melair\\Edppowerbi"
+		},
+		"Link_APAC_CAT_ARM_properties_typeProperties_url": {
+			"value": "https://apac.activeriskmanager.com/armapi/inst/2/ba/1/"
+		},
+		"Link_APAC_CAT_ARM_properties_typeProperties_userName": {
+			"value": "test"
+		},
+		"Link_APAC_CAT_CE_Dataverse_properties_typeProperties_servicePrincipalId": {
+			"value": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		},
+		"Link_APAC_CAT_Control_properties_typeProperties_url": {
+			"value": "@{concat('https://controllakehouse',linkedService().region,linkedService().env,'.dfs.core.windows.net')}"
+		},
+		"Link_APAC_CAT_Control_properties_typeProperties_tenant": {
+			"value": "3f1f92c1-3232-46bb-b79d-8fe22e40c73c"
+		},
+		"Link_APAC_CAT_Control_properties_typeProperties_servicePrincipalId": {
+			"value": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_url": {
+			"value": "https://apac-fo-uat.sandbox.operations.dynamics.com/data"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_servicePrincipalId": {
+			"value": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_tenant": {
+			"value": "3f1f92c1-3232-46bb-b79d-8fe22e40c73c"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_aadResourceId": {
+			"value": "https://apac-fo-uat.sandbox.operations.dynamics.com"
+		},
+		"Link_APAC_CAT_KV_properties_typeProperties_baseUrl": {
+			"value": "@{concat('https://kv-ase-',linkedService().env,'.vault.azure.net/')}"
+		},
+		"Link_APAC_CAT_Maximo_properties_typeProperties_userName": {
+			"value": "melair\\xwu_admin"
+		},
+		"Link_APAC_CAT_OnPremFileShare_properties_typeProperties_host": {
+			"value": "\\\\airport.local\\mel\\Repository\\D365\\Test\\Outbox"
+		},
+		"Link_APAC_CAT_OnPremFileShare_properties_typeProperties_userId": {
+			"value": "Melair\\edp_svc"
+		},
+		"Link_APAC_CAT_Staging_properties_typeProperties_url": {
+			"value": "@{concat('https://staginglakehouse',linkedService().region,linkedService().env,'.dfs.core.windows.net')}"
+		},
+		"Link_APAC_CAT_Staging_properties_typeProperties_tenant": {
+			"value": "3f1f92c1-3232-46bb-b79d-8fe22e40c73c"
+		},
+		"Link_APAC_CAT_Staging_properties_typeProperties_servicePrincipalId": {
+			"value": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		},
+		"Trg-Brnze-Tumbling_properties_pipeline_parameters_ReportDate": {
+			"value": "9999_12_31"
+		},
+		"Trg-Brnze-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"value": "cat_lakehouse_metaverse"
+		},
+		"Trg-FO-To-Staging-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"value": "cat_lakehouse_metaverse"
+		},
+		"Trg-Gold-Tumbling_properties_pipeline_parameters_ReportDate": {
+			"value": "9999_12_31"
+		},
+		"Trg-Gold-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"value": "cat_lakehouse_metaverse"
+		},
+		"Trg-Silver-Tumbling_properties_pipeline_parameters_ReportDate": {
+			"value": "9999_12_31"
+		},
+		"Trg-Silver-Tumbling_properties_pipeline_parameters_AuditSchema": {
+			"value": "cat_lakehouse_metaverse"
+		},
+		"apac-onprem-ir-sit_properties_typeProperties_linkedInfo_resourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourcegroups/rg-apac-ingest-ase-dev01/providers/Microsoft.DataFactory/factories/adf-ase-dev01/integrationruntimes/apac-onprem-shir-dev01"
+		},
+		"blob-bronze-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/bronzelakehouseasesit"
+		},
+		"blob-bronze-adf-ase-ase-pep_properties_groupId": {
+			"value": "dfs"
+		},
+		"blob-bronze-adf-ase-ase-pep_properties_fqdns": {
+			"value": [
+				"bronzelakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-control-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/controllakehouseasesit"
+		},
+		"blob-control-adf-ase-ase-pep_properties_groupId": {
+			"value": "dfs"
+		},
+		"blob-control-adf-ase-ase-pep_properties_fqdns": {
+			"value": [
+				"controllakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-gold-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/goldlakehouseasesit"
+		},
+		"blob-gold-adf-ase-ase-pep_properties_groupId": {
+			"value": "dfs"
+		},
+		"blob-gold-adf-ase-ase-pep_properties_fqdns": {
+			"value": [
+				"goldlakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-silver-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/silverlakehouseasesit"
+		},
+		"blob-silver-adf-ase-ase-pep_properties_groupId": {
+			"value": "dfs"
+		},
+		"blob-silver-adf-ase-ase-pep_properties_fqdns": {
+			"value": [
+				"silverlakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"blob-staging-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/staginglakehouseasesit"
+		},
+		"blob-staging-adf-ase-ase-pep_properties_groupId": {
+			"value": "dfs"
+		},
+		"blob-staging-adf-ase-ase-pep_properties_fqdns": {
+			"value": [
+				"staginglakehouseasesit.dfs.core.windows.net"
+			]
+		},
+		"file-meldrive-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-data-ase-sit/providers/Microsoft.Storage/storageAccounts/meldriveasesit"
+		},
+		"file-meldrive-adf-ase-ase-pep_properties_groupId": {
+			"value": "dfs"
+		},
+		"file-meldrive-adf-ase-ase-pep_properties_fqdns": {
+			"value": [
+				"meldriveasesit.dfs.core.windows.net"
+			]
+		},
+		"kv-adf-ase-ase-pep_properties_privateLinkResourceId": {
+			"value": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-kv-ase-sit/providers/Microsoft.KeyVault/vaults/kv-ase-sit"
+		},
+		"kv-adf-ase-ase-pep_properties_groupId": {
+			"value": "vault"
+		}
+	}
+}

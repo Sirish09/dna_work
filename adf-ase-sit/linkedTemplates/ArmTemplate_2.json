@@ -1,0 +1,3248 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ase-sit"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_finops_control')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Control",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"folder": {
+					"name": "finance"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "finops_control_tbl.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Dataverse_Table0",
+						"type": "String"
+					},
+					{
+						"name": "Dataverse_Table1",
+						"type": "String"
+					},
+					{
+						"name": "High_WaterMark",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_lakehouse_staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"tbl_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().tbl_name",
+							"type": "Expression"
+						},
+						"fileSystem": "staging"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_maximo_control')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Control",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"folder": {
+					"name": "maximo"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "maximo_control_tbl.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_meta_cotrol_tbl')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Deltalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureDatabricksDeltaLakeDataset",
+				"typeProperties": {
+					"database": "cat_lakehouse_metaverse_sit",
+					"table": "job"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_so_sl_destination_file')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"Directory": {
+						"type": "string"
+					},
+					"File": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "integration/finance"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().File",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().Directory",
+							"type": "Expression"
+						},
+						"fileSystem": "apac-integration"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_stream_control')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Control",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"folder": {
+					"name": "data_lake"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "fo_stream_control_tbl.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "FileName",
+						"type": "String"
+					},
+					{
+						"name": "Container",
+						"type": "String"
+					},
+					{
+						"name": "FilePath",
+						"type": "String"
+					},
+					{
+						"name": "SchemaPath",
+						"type": "String"
+					},
+					{
+						"name": "FileType",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_xref_control')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Control",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"folder": {
+					"name": "cross_reference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "xref_control_tbl.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Dataverse_Table0",
+						"type": "String"
+					},
+					{
+						"name": "Dataverse_Table1",
+						"type": "String"
+					},
+					{
+						"name": "High_WaterMark",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_arm_riskissues')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "integration/projects"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_ARM",
+								"type": "LinkedServiceReference"
+							},
+							"name": "ARMFolders"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_ARM",
+								"type": "LinkedServiceReference"
+							},
+							"name": "ARMRisks"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_ARM",
+								"type": "LinkedServiceReference"
+							},
+							"name": "ARMImpact"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_ARM",
+								"type": "LinkedServiceReference"
+							},
+							"name": "ARMPlan"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_ARM",
+								"type": "LinkedServiceReference"
+							},
+							"name": "ARMAssessment"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "WriteARMDataFinal"
+						}
+					],
+					"transformations": [
+						{
+							"name": "SelectFolderBody"
+						},
+						{
+							"name": "FlattenFolders"
+						},
+						{
+							"name": "FilterOffEmptyWBS"
+						},
+						{
+							"name": "SelectAssessment"
+						},
+						{
+							"name": "FlattenAssessment"
+						},
+						{
+							"name": "SelectPlan"
+						},
+						{
+							"name": "FlattenPlan"
+						},
+						{
+							"name": "SelectImpact"
+						},
+						{
+							"name": "FlattenImpact"
+						},
+						{
+							"name": "SelectRisks"
+						},
+						{
+							"name": "FlattenRisks"
+						},
+						{
+							"name": "JoinImpactPlan"
+						},
+						{
+							"name": "JoinImpactAssessment"
+						},
+						{
+							"name": "JoinRiskImpacts"
+						},
+						{
+							"name": "JoinRiskFolder"
+						}
+					],
+					"script": "source(output(\n\t\tbody as ({@odata.context} as string, value as (budgetForTime as integer, businessAreaKey as boolean, expectedDuration as integer, isSummaryTask as boolean, item as (budgetForCost as double, businessAreaKey as boolean, caveatKey as short, classificationsKey as short, comments as string, configurationKey as short, currencyKey as boolean, customProjectTextField as string, description as string, distributionKey as short, expectedCost as double, itemTypeKey as short, key as short, maximumCost as double, minimumCost as double, name as string, nodeStatusKey as short, ownerKey as short, plannedCost as double, planningApplicationKey as short, reviewPeriod as short, scoringSchemeGroupKey as short, treeTypeKey as boolean), itemKey as short, manualOverride as double, maximumDuration as boolean, minimumDuration as boolean, percentageComplete as double, plannedDuration as integer, plannedEndDate as timestamp, plannedStartDate as timestamp, provisionDate as string, provisionPlannedStartDate as string, provisionType1 as double, provisionType2 as double, statusKey as short, totalProvision as double, wbsItem as string)[]),\n\t\theaders as [string,string]\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'rest',\n\ttimeout: 30,\n\trequestInterval: 0,\n\tentity: 'FolderItems',\n\tqueryParameters: ['$expand' -> 'item'],\n\thttpMethod: 'GET',\n\tpaginationRules: ['supportRFC5988' -> 'true'],\n\tresponseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> ARMFolders\nsource(output(\n\t\tbody as ({@odata.context} as string, value as (assessment as string, cause as string, description as string, effect as string, id as short, key as short, lastReview as string, phase as (name as string), recordTypeKey as short, source as (name as string), status as (description as string), title as string)[]),\n\t\theaders as [string,string]\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'rest',\n\ttimeout: 30,\n\trequestInterval: 0,\n\tentity: 'Risks',\n\tqueryParameters: ['$expand' -> 'status($select=description),phase($select=name),source($select=name)', '$filter' -> '(impacts/any(o: o/item/ancestors/any(p: p/parentKey eq 34)))', '$select' -> 'id, key, recordTypeKey,title,description,lastreview, assessment,cause,effect'],\n\thttpMethod: 'GET',\n\tpaginationRules: ['supportRFC5988' -> 'true'],\n\tresponseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> ARMRisks\nsource(output(\n\t\tbody as ({@odata.context} as string, value as (id as short, impacts as (businessAreaKey as boolean, item as (name as string), itemKey as short, key as short, scoringScheme as (name as string))[], key as short)[]),\n\t\theaders as [string,string]\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'rest',\n\ttimeout: 30,\n\trequestInterval: 0,\n\tentity: 'Risks',\n\tqueryParameters: ['$expand' -> 'impacts($select=key,itemKey, businessAreaKey;$expand=item($select=name),scoringscheme($select=name))', '$filter' -> '(impacts/any(o: o/item/ancestors/any(p: p/parentKey eq 34)))', '$select' -> 'key,id'],\n\thttpMethod: 'GET',\n\tpaginationRules: ['supportRFC5988' -> 'true'],\n\tresponseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> ARMImpact\nsource(output(\n\t\tbody as ({@odata.context} as string, value as (impacts as (key as short, plan as (completion as string, name as string, owner as (email as string, firstName as string, lastName as string), planStrategy as (description as string)))[])[]),\n\t\theaders as [string,string]\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'rest',\n\ttimeout: 30,\n\trequestInterval: 0,\n\tentity: 'Risks',\n\tqueryParameters: ['$expand' -> 'impacts($select=key;$expand=plan($select=name,completion;$expand=planstrategy($select=description),Owner($select=firstname, lastname, email)))', '$filter' -> '(impacts/any(o: o/item/ancestors/any(p: p/parentKey eq 34)))', '$select' -> 'impacts'],\n\thttpMethod: 'GET',\n\tpaginationRules: ['supportRFC5988' -> 'true'],\n\tresponseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine']) ~> ARMPlan\nsource(output(\n\t\tbody as ({@odata.context} as string, value as (impacts as (currentAssessment as (riskLevel as (color as (colorRef as string), description as string), riskLevelScore as double), key as short, targetAssessment as (riskLevel as (color as (colorRef as string), description as string), riskLevelScore as double))[])[]),\n\t\theaders as [string,string]\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'rest',\n\ttimeout: 30,\n\trequestInterval: 0,\n\tentity: 'Risks',\n\tqueryParameters: ['$filter' -> '(impacts/any(o: o/item/ancestors/any(p: p/parentKey eq 34)))', '$expand' -> 'impacts($select=key;$expand=currentassessment($select=risklevelscore;$expand=risklevel($select=description;$expand=color($select=colorref))),targetassessment($select=risklevelscore;$expand=risklevel($select=description;$expand=color($select=colorref))))', '$select' -> 'impacts'],\n\thttpMethod: 'GET',\n\tpaginationRules: ['supportRFC5988' -> 'true'],\n\tresponseFormat: ['type' -> 'json', 'documentForm' -> 'documentPerLine'],\n\tpartitionBy('hash', 1)) ~> ARMAssessment\nARMFolders select(mapColumn(\n\t\tbody = body.value\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectFolderBody\nSelectFolderBody foldDown(unroll(body, body),\n\tmapColumn(\n\t\tbudgetForTime = body.budgetForTime,\n\t\tbusinessAreaKey = body.businessAreaKey,\n\t\texpectedDuration = body.expectedDuration,\n\t\tisSummaryTask = body.isSummaryTask,\n\t\titem = body.item,\n\t\titemKey = body.itemKey,\n\t\tmanualOverride = body.manualOverride,\n\t\tmaximumDuration = body.maximumDuration,\n\t\tminimumDuration = body.minimumDuration,\n\t\tpercentageComplete = body.percentageComplete,\n\t\tplannedDuration = body.plannedDuration,\n\t\tplannedEndDate = body.plannedEndDate,\n\t\tplannedStartDate = body.plannedStartDate,\n\t\tprovisionDate = body.provisionDate,\n\t\tprovisionPlannedStartDate = body.provisionPlannedStartDate,\n\t\tprovisionType1 = body.provisionType1,\n\t\tprovisionType2 = body.provisionType2,\n\t\tstatusKey = body.statusKey,\n\t\ttotalProvision = body.totalProvision,\n\t\twbsItem = body.wbsItem\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> FlattenFolders\nFlattenFolders filter((!isNull(wbsItem)) && length(wbsItem)>2 && startsWith(wbsItem,\"CP\")) ~> FilterOffEmptyWBS\nARMAssessment select(mapColumn(\n\t\tbody = body.value\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectAssessment\nSelectAssessment foldDown(unroll(body.impacts, body),\n\tmapColumn(\n\t\tCurrentDescription = body.impacts.currentAssessment.riskLevel.description,\n\t\tCurrentRiskScore = body.impacts.currentAssessment.riskLevelScore,\n\t\tCurrentColorRef = body.impacts.currentAssessment.riskLevel.color.colorRef,\n\t\tTargetDescription = body.impacts.targetAssessment.riskLevel.description,\n\t\tTargetRiskScore = body.impacts.targetAssessment.riskLevelScore,\n\t\tTargetColorRef = body.impacts.targetAssessment.riskLevel.color.colorRef,\n\t\tAssessmentKey = body.impacts.key\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> FlattenAssessment\nARMPlan select(mapColumn(\n\t\tbody = body.value\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectPlan\nSelectPlan foldDown(unroll(body.impacts, body),\n\tmapColumn(\n\t\tPlanKey = body.impacts.key,\n\t\tPlanName = body.impacts.plan.name,\n\t\tPlanCompletion = body.impacts.plan.completion,\n\t\tPlanStrategy = body.impacts.plan.planStrategy.description,\n\t\tPlanFirstName = body.impacts.plan.owner.firstName,\n\t\tPlanEmail = body.impacts.plan.owner.email,\n\t\tPlanlastName = body.impacts.plan.owner.lastName\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> FlattenPlan\nARMImpact select(mapColumn(\n\t\tbody = body.value\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectImpact\nSelectImpact foldDown(unroll(body.impacts, body),\n\tmapColumn(\n\t\tImpactRiskId = body.id,\n\t\tImpactBusinessAreaKey = body.impacts.businessAreaKey,\n\t\tImpactItemKey = body.impacts.itemKey,\n\t\tImpactKey = body.impacts.key,\n\t\tImpactScoringScheme = body.impacts.scoringScheme,\n\t\tImpactRiskKey = body.key,\n\t\tImpactName = body.impacts.item.name\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> FlattenImpact\nARMRisks select(mapColumn(\n\t\tbody = body.value\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectRisks\nSelectRisks foldDown(unroll(body, body),\n\tmapColumn(\n\t\tRiskAssessment = body.assessment,\n\t\tRiskCause = body.cause,\n\t\tRiskDescription = body.description,\n\t\tRiskEffect = body.effect,\n\t\tRiskId = body.id,\n\t\tRiskKey = body.key,\n\t\tRiskLastReview = body.lastReview,\n\t\tRiskPhase = body.phase.name,\n\t\tRiskRecordTypeKey = body.recordTypeKey,\n\t\tRiskSource = body.source.name,\n\t\tRiskStatus = body.status.description,\n\t\tRiskTitle = body.title\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> FlattenRisks\nFlattenImpact, FlattenPlan join(ImpactKey == PlanKey,\n\tjoinType:'inner',\n\tmatchType:'exact',\n\tignoreSpaces: false,\n\tbroadcast: 'auto')~> JoinImpactPlan\nJoinImpactPlan, FlattenAssessment join(ImpactKey == AssessmentKey,\n\tjoinType:'inner',\n\tmatchType:'exact',\n\tignoreSpaces: false,\n\tbroadcast: 'auto')~> JoinImpactAssessment\nFlattenRisks, JoinImpactAssessment join(RiskId == ImpactRiskId,\n\tjoinType:'inner',\n\tmatchType:'exact',\n\tignoreSpaces: false,\n\tbroadcast: 'auto')~> JoinRiskImpacts\nJoinRiskImpacts, FilterOffEmptyWBS join(ImpactItemKey == itemKey,\n\tjoinType:'inner',\n\tmatchType:'exact',\n\tignoreSpaces: false,\n\tbroadcast: 'auto')~> JoinRiskFolder\nJoinRiskFolder sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tpartitionFileNames:['ARMRiskData.json'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> WriteARMDataFinal"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_lookup_issue')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "integration/projects"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceARM"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceStringMap"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiOwner"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiRisk"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceProject"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiuser"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiIssue"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SinkIssues"
+						}
+					],
+					"transformations": [
+						{
+							"name": "LookupIssueStatus"
+						},
+						{
+							"name": "SelectIssueStatus"
+						},
+						{
+							"name": "LookupRecordType"
+						},
+						{
+							"name": "SelectRecordType"
+						},
+						{
+							"name": "LookupLevelCurrent"
+						},
+						{
+							"name": "SelectLevelCurrent"
+						},
+						{
+							"name": "LookupIssuecategory"
+						},
+						{
+							"name": "SelectIssueCategory"
+						},
+						{
+							"name": "LookupIssuePhase"
+						},
+						{
+							"name": "SelectIssuePhase"
+						},
+						{
+							"name": "LookupIssueStrategy"
+						},
+						{
+							"name": "SelectIssueStrategy"
+						},
+						{
+							"name": "LookupIssueScoringScheme"
+						},
+						{
+							"name": "SelectIssueScoringScheme"
+						},
+						{
+							"name": "LookupOwnerName"
+						},
+						{
+							"name": "SelectOwnerID"
+						},
+						{
+							"name": "LookupCPNumber"
+						},
+						{
+							"name": "SelectSenseiProject"
+						},
+						{
+							"name": "LookupIssueId"
+						},
+						{
+							"name": "AddColumnRiskID"
+						},
+						{
+							"name": "AddSenseiURL"
+						},
+						{
+							"name": "AddSenseiTitle"
+						},
+						{
+							"name": "LookupLevelTarget"
+						},
+						{
+							"name": "SelectLevelTarget"
+						},
+						{
+							"name": "FilterIssue"
+						},
+						{
+							"name": "FilterIssuesWithoutProjects"
+						}
+					],
+					"script": "parameters{\n\tARMURL as string (\"https://apac.activeriskmanager.com/arm/1/\")\n}\nsource(output(\n\t\tAssessmentKey as short,\n\t\tCurrentColorRef as string,\n\t\tCurrentDescription as string,\n\t\tCurrentRiskScore as double,\n\t\tImpactBusinessAreaKey as boolean,\n\t\tImpactItemKey as short,\n\t\tImpactKey as short,\n\t\tImpactName as string,\n\t\tImpactRiskId as short,\n\t\tImpactRiskKey as short,\n\t\tImpactScoringScheme as (name as string),\n\t\tPlanEmail as string,\n\t\tPlanFirstName as string,\n\t\tPlanKey as short,\n\t\tPlanName as string,\n\t\tPlanStrategy as string,\n\t\tPlanlastName as string,\n\t\tRiskCause as string,\n\t\tRiskDescription as string,\n\t\tRiskEffect as string,\n\t\tRiskId as short,\n\t\tRiskKey as short,\n\t\tRiskLastReview as string,\n\t\tRiskPhase as string,\n\t\tRiskRecordTypeKey as short,\n\t\tRiskSource as string,\n\t\tRiskStatus as string,\n\t\tRiskTitle as string,\n\t\tTargetColorRef as string,\n\t\tTargetDescription as string,\n\t\tTargetRiskScore as double,\n\t\tbudgetForTime as integer,\n\t\tbusinessAreaKey as boolean,\n\t\texpectedDuration as integer,\n\t\tisSummaryTask as boolean,\n\t\titem as (budgetForCost as double, businessAreaKey as boolean, caveatKey as short, classificationsKey as short, comments as string, configurationKey as short, currencyKey as boolean, customProjectTextField as string, description as string, distributionKey as boolean, expectedCost as double, itemTypeKey as short, key as short, maximumCost as double, minimumCost as double, name as string, nodeStatusKey as boolean, ownerKey as short, plannedCost as double, planningApplicationKey as boolean, reviewPeriod as short, scoringSchemeGroupKey as short, treeTypeKey as boolean),\n\t\titemKey as short,\n\t\tmanualOverride as double,\n\t\tmaximumDuration as boolean,\n\t\tminimumDuration as boolean,\n\t\tpercentageComplete as double,\n\t\tplannedDuration as boolean,\n\t\tprovisionType1 as double,\n\t\tprovisionType2 as double,\n\t\tstatusKey as short,\n\t\ttotalProvision as double,\n\t\twbsItem as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'ARMRiskData.json',\n\tdocumentForm: 'documentPerLine') ~> SourceARM\nsource(output(\n\t\tattributename as string,\n\t\tattributevalue as integer,\n\t\tdisplayorder as short,\n\t\tlangid as short,\n\t\tobjecttypecode as string,\n\t\torganizationid as string,\n\t\tstringmapid as string,\n\t\tvalue as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseistringmap.json',\n\tdocumentForm: 'documentPerLine') ~> SourceStringMap\nsource(output(\n\t\tname as string,\n\t\townerid as string,\n\t\towneridtype as string,\n\t\tversionnumber as string,\n\t\tyominame as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiowner.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiOwner\nsource(output(\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\texchangerate as string,\n\t\timportsequencenumber as string,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\toverriddencreatedon as string,\n\t\townerid as string,\n\t\towneridname as string,\n\t\towneridtype as string,\n\t\towneridyominame as string,\n\t\towningbusinessunit as string,\n\t\towningbusinessunitname as string,\n\t\towningteam as string,\n\t\towninguser as string,\n\t\tsc_atomriskid as short,\n\t\tsc_completiondate as timestamp,\n\t\tsc_lastreviewdate as timestamp,\n\t\tsc_pidcolourcurrent as string,\n\t\tsc_pidcolourtarget as string,\n\t\tsc_pidlevelcurrent as integer,\n\t\tsc_pidleveltarget as integer,\n\t\tsc_pidscorecurrent as short,\n\t\tsc_pidscoretarget as short,\n\t\tsc_recordtype as integer,\n\t\tsc_riskcategory as integer,\n\t\tsc_riskphase as integer,\n\t\tsc_riskrecordurl as string,\n\t\tsc_riskstatus as integer,\n\t\tsc_riskstrategy as integer,\n\t\tsc_scoringscheme as integer,\n\t\tsensei_assignedto as string,\n\t\tsensei_assignedtoname as string,\n\t\tsensei_assignedtoyominame as string,\n\t\tsensei_benefit as string,\n\t\tsensei_benefitname as string,\n\t\tsensei_category as string,\n\t\tsensei_consequence as integer,\n\t\tsensei_consequenceindex as short,\n\t\tsensei_contingencyplan as string,\n\t\tsensei_cost as string,\n\t\tsensei_cost_base as string,\n\t\tsensei_description as string,\n\t\tsensei_duedate as string,\n\t\tsensei_id as short,\n\t\tsensei_likelihood as integer,\n\t\tsensei_likelihoodindex as short,\n\t\tsensei_mitigationplan as string,\n\t\tsensei_name as string,\n\t\tsensei_portfolio as string,\n\t\tsensei_portfolioname as string,\n\t\tsensei_program as string,\n\t\tsensei_programname as string,\n\t\tsensei_project as string,\n\t\tsensei_projectname as string,\n\t\tsensei_riskid as string,\n\t\tsensei_riskscore as short,\n\t\tsensei_trigger as integer,\n\t\tsensei_triggerdescription as string,\n\t\tstatecode as short,\n\t\tstatuscode as short,\n\t\ttimezoneruleversionnumber as short,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseirisk.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiRisk\nsource(output(\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\texchangerate as double,\n\t\timportsequencenumber as short,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\toverriddencreatedon as string,\n\t\townerid as string,\n\t\towneridname as string,\n\t\towneridtype as string,\n\t\towneridyominame as string,\n\t\towningbusinessunit as string,\n\t\towningbusinessunitname as string,\n\t\towningteam as string,\n\t\towninguser as string,\n\t\tprocessid as string,\n\t\tsc_approvedcapex as string,\n\t\tsc_approvedcapex_base as string,\n\t\tsc_approver as string,\n\t\tsc_approvername as string,\n\t\tsc_approveryominame as string,\n\t\tsc_asa as boolean,\n\t\tsc_asapercent as double,\n\t\tsc_assumptions as string,\n\t\tsc_atomprojectid as string,\n\t\tsc_backgroundbusinessneeds as string,\n\t\tsc_budgetsentforapproval as boolean,\n\t\tsc_company as string,\n\t\tsc_companyname as string,\n\t\tsc_constraints as string,\n\t\tsc_costdriver1 as string,\n\t\tsc_costdriver1name as string,\n\t\tsc_costdriver2 as string,\n\t\tsc_costdriver2name as string,\n\t\tsc_costresourcetaskimports as boolean,\n\t\tsc_cpnumber as string,\n\t\tsc_currentffc as string,\n\t\tsc_currentffc_base as string,\n\t\tsc_currentgatepimms as string,\n\t\tsc_deliveryprogram as string,\n\t\tsc_dependencies as string,\n\t\tsc_developmentmanager as string,\n\t\tsc_developmentmanageremployee as string,\n\t\tsc_developmentmanageremployeename as string,\n\t\tsc_developmentmanagername as string,\n\t\tsc_developmentmanageryominame as string,\n\t\tsc_documentlibrarytemplateapplied as boolean,\n\t\tsc_endorser as string,\n\t\tsc_endorsername as string,\n\t\tsc_endorseryominame as string,\n\t\tsc_execcapitalprogram as string,\n\t\tsc_financialitemforrecordinglabouractuals as string,\n\t\tsc_financialitemforrecordinglabouractualsname as string,\n\t\tsc_finopsapprovalspending as boolean,\n\t\tsc_forecastforrecordingairportcostactuals as string,\n\t\tsc_forecastforrecordingairportcostactualsname as string,\n\t\tsc_forecastforrecordingcapitalinterestactual as string,\n\t\tsc_forecastforrecordingcapitalinterestactualname as string,\n\t\tsc_forecastforrecordingcostrecoveriesactuals as string,\n\t\tsc_forecastforrecordingcostrecoveriesactualsname as string,\n\t\tsc_forecastforrecordingwsoactuals as string,\n\t\tsc_forecastforrecordingwsoactualsname as string,\n\t\tsc_gate1document as string,\n\t\tsc_healthandsafety as string,\n\t\tsc_inscope as string,\n\t\tsc_isasenseiproject as boolean,\n\t\tsc_keydatestatus as string,\n\t\tsc_keyproject as boolean,\n\t\tsc_methods as string,\n\t\tsc_migrationproject as boolean,\n\t\tsc_outofscope as string,\n\t\tsc_p50 as string,\n\t\tsc_papno as string,\n\t\tsc_papnumber as string,\n\t\tsc_percows as string,\n\t\tsc_physicallocation as string,\n\t\tsc_pimsid as string,\n\t\tsc_precinct as string,\n\t\tsc_previousfundingamount as string,\n\t\tsc_previousfundingamount_base as string,\n\t\tsc_previousfundingdateapproved as string,\n\t\tsc_previousfundingrequestsapproved as string,\n\t\tsc_productowner as string,\n\t\tsc_productownername as string,\n\t\tsc_productowneryominame as string,\n\t\tsc_projectdriver as integer,\n\t\tsc_projectgroup as string,\n\t\tsc_projectgroupname as string,\n\t\tsc_projectmanager as string,\n\t\tsc_projectmanagername as string,\n\t\tsc_relatedasset as boolean,\n\t\tsc_relatedassetitem as string,\n\t\tsc_totalcostofthisrequestcapex as double,\n\t\tsc_totalcostofthisrequestcapex_base as double,\n\t\tsc_totalforecast as string,\n\t\tsc_totalforecast_base as string,\n\t\tsc_totalforecast_date as string,\n\t\tsc_totalforecast_state as short,\n\t\tsc_valueofworkstatus as integer,\n\t\tsc_variationsummaryapproved as double,\n\t\tsc_variationsummaryapproved_base as double,\n\t\tsc_variationsummaryapproved_date as timestamp,\n\t\tsc_variationsummaryapproved_state as short,\n\t\tsc_variationsummaryforecast as double,\n\t\tsc_variationsummaryforecast_base as double,\n\t\tsc_variationsummaryforecast_date as timestamp,\n\t\tsc_variationsummaryforecast_state as short,\n\t\tsc_variationsummarypending as double,\n\t\tsc_variationsummarypending_base as double,\n\t\tsc_variationsummarypending_date as timestamp,\n\t\tsc_variationsummarypending_state as short,\n\t\tsc_wfgate2commoncomplete as boolean,\n\t\tsc_wfgate2conceptdesignphasepcb as integer,\n\t\tsc_wfgate2currentschedule as integer,\n\t\tsc_wfgate2evidenceoffundingapproval as integer,\n\t\tsc_wfgate2executeddesconsultantappointments as integer,\n\t\tsc_wfgate2executedpmconsultantappointment as integer,\n\t\tsc_wfgate2pmpconceptdesign as integer,\n\t\tsc_wfgate2projectrequirementsconceptdesign as integer,\n\t\tsc_wfgate2safetyindesignhazardanalysis as integer,\n\t\tsc_wfgate2stakeholderconceptdesignsignoff as integer,\n\t\tsc_wfgate2tradmegacomplete as boolean,\n\t\tsc_wfgate3commoncomplete as boolean,\n\t\tsc_wfgate3currentbaselineschedule as integer,\n\t\tsc_wfgate3executeddesignconsultantappoints as integer,\n\t\tsc_wfgate3executedpmconsultantappointment as integer,\n\t\tsc_wfgate3planningpermitrequired as integer,\n\t\tsc_wfgate3pmpschemedesignupdate as integer,\n\t\tsc_wfgate3principalprojectreqschematicdesign as integer,\n\t\tsc_wfgate3safetyindesignriskassessment as integer,\n\t\tsc_wfgate3schemedesignphasepcb as integer,\n\t\tsc_wfgate3stakeholderconceptdesignsignoff as integer,\n\t\tsc_wfgate4commoncomplete as boolean,\n\t\tsc_wfgate4currentbaselineschedule as integer,\n\t\tsc_wfgate4currentupdatedriskregister as integer,\n\t\tsc_wfgate4designconstructcomplete as boolean,\n\t\tsc_wfgate4designrequirements as integer,\n\t\tsc_wfgate4docproccomplete as boolean,\n\t\tsc_wfgate4executeddesconsultantappointments as integer,\n\t\tsc_wfgate4executedpmconsultantappointment as integer,\n\t\tsc_wfgate4investmentcommiteeboardpaper as integer,\n\t\tsc_wfgate4minorworkscomplete as boolean,\n\t\tsc_wfgate4planningpermit as integer,\n\t\tsc_wfgate4pmpschemedesignupdateifrequired as integer,\n\t\tsc_wfgate4procurementplan as integer,\n\t\tsc_wfgate4readytoproceedbusinesscaseapproval as integer,\n\t\tsc_wfgate4stakeholderschemedesignhandover as integer,\n\t\tsc_wfgate4stakeholdertenderdocsignoff as integer,\n\t\tsc_wfgate4tenderpricingdocuments as integer,\n\t\tsc_wfgate4tenderreadypcbapamtemplate as integer,\n\t\tsc_wfgate4tenderreadyphasepcb as integer,\n\t\tsc_wfgate4tradmegacomplete as boolean,\n\t\tsc_wfgate5bankguaranteereleasepartial as integer,\n\t\tsc_wfgate5buildingactivitycompletion as integer,\n\t\tsc_wfgate5buildingactivityconsent as integer,\n\t\tsc_wfgate5buildingpermit as integer,\n\t\tsc_wfgate5certcomplianceofoccupancyforuse as integer,\n\t\tsc_wfgate5certificateofpracticalcompletion as integer,\n\t\tsc_wfgate5commoncomplete as boolean,\n\t\tsc_wfgate5currentbaselineprojectschedule as integer,\n\t\tsc_wfgate5designconstructcomplete as boolean,\n\t\tsc_wfgate5docproccomplete as boolean,\n\t\tsc_wfgate5executedcontractdesignappointments as integer,\n\t\tsc_wfgate5executedcontractfordeliveryworks as integer,\n\t\tsc_wfgate5executedpmconsultantsappointments as integer,\n\t\tsc_wfgate5minorworkscomplete as boolean,\n\t\tsc_wfgate5percow as integer,\n\t\tsc_wfgate5pmpdelivery as integer,\n\t\tsc_wfgate5practicalcompletionpcb as integer,\n\t\tsc_wfgate5submissionofasbuiltdocumentation as integer,\n\t\tsc_wfgate5tradmegacomplete as boolean,\n\t\tsc_wfgate6approvedasbuiltdocuments as integer,\n\t\tsc_wfgate6commoncomplete as boolean,\n\t\tsc_wfgate6designconstructcomplete as boolean,\n\t\tsc_wfgate6minorworkscomplete as boolean,\n\t\tsc_wfgate6postprojectreview as integer,\n\t\tsc_wfgate6tradmegacomplete as boolean,\n\t\tsc_wfgate7bankguaranteereleasefinal as integer,\n\t\tsc_wfgate7commoncomplete as boolean,\n\t\tsc_wfgate7deedofrelease as integer,\n\t\tsc_wfgate7designconstructcomplete as boolean,\n\t\tsc_wfgate7finalcertificate as integer,\n\t\tsc_wfgate7minorworkscomplete as boolean,\n\t\tsc_wfgate7tradmegacomplete as boolean,\n\t\tsensei_actualcostlocked as boolean,\n\t\tsensei_baselineschedulereview as string,\n\t\tsensei_baselineschedulereview_approved_yn as boolean,\n\t\tsensei_baselineschedulereviewname as string,\n\t\tsensei_budgetlocked as boolean,\n\t\tsensei_businessbenefits as string,\n\t\tsensei_channelid as string,\n\t\tsensei_costtype as string,\n\t\tsensei_criticalresponsetargets as string,\n\t\tsensei_currentstage as string,\n\t\tsensei_department as integer,\n\t\tsensei_departmentalreview as string,\n\t\tsensei_departmentalreview_approved_yn as boolean,\n\t\tsensei_departmentalreviewname as string,\n\t\tsensei_description as string,\n\t\tsensei_devops_projectid as string,\n\t\tsensei_devops_projectidname as string,\n\t\tsensei_effortcompleted as double,\n\t\tsensei_effortremaining as double,\n\t\tsensei_efforttotal as double,\n\t\tsensei_escalationcontact as string,\n\t\tsensei_escalationmanager as string,\n\t\tsensei_expectedbenefits as string,\n\t\tsensei_externalprojectid as string,\n\t\tsensei_fieldlock as string,\n\t\tsensei_financialbenefits as double,\n\t\tsensei_financialbenefits_base as double,\n\t\tsensei_forecastcostlocked as boolean,\n\t\tsensei_formupdatedtoken as string,\n\t\tsensei_highresponsetargets as string,\n\t\tsensei_investmentcategory as integer,\n\t\tsensei_lastmodifiedfromrefresh as string,\n\t\tsensei_lastsyncdate as timestamp,\n\t\tsensei_location as string,\n\t\tsensei_name as string,\n\t\tsensei_numberofreleases as string,\n\t\tsensei_operationalpriority as string,\n\t\tsensei_operationstype as string,\n\t\tsensei_organisationalchangeimpact as string,\n\t\tsensei_originofchange as string,\n\t\tsensei_p4twprojectid as string,\n\t\tsensei_p4twprojectidname as string,\n\t\tsensei_percentcomplete as short,\n\t\tsensei_portfolio as string,\n\t\tsensei_portfolioname as string,\n\t\tsensei_problemstatement as string,\n\t\tsensei_productgoals as string,\n\t\tsensei_program as string,\n\t\tsensei_programname as string,\n\t\tsensei_projectclosurereview as string,\n\t\tsensei_projectclosurereview_approved_yn as boolean,\n\t\tsensei_projectclosurereviewname as string,\n\t\tsensei_projectfinish as timestamp,\n\t\tsensei_projectid as string,\n\t\tsensei_projectmanager as string,\n\t\tsensei_projectmanagername as string,\n\t\tsensei_projectmanageryominame as string,\n\t\tsensei_projectonline_projectid as string,\n\t\tsensei_projectonline_projectidname as string,\n\t\tsensei_projectstart as timestamp,\n\t\tsensei_projecttype as string,\n\t\tsensei_projecttypename as string,\n\t\tsensei_projectvision as string,\n\t\tsensei_proposedcosts as double,\n\t\tsensei_proposedcosts_base as double,\n\t\tsensei_proposedfinish as string,\n\t\tsensei_proposedgolivedate as string,\n\t\tsensei_proposedstart as string,\n\t\tsensei_releasestrategy as string,\n\t\tsensei_returnoninvestment as double,\n\t\tsensei_routineresponsetargets as string,\n\t\tsensei_sponsor as string,\n\t\tsensei_sponsorname as string,\n\t\tsensei_sponsoryominame as string,\n\t\tsensei_stage1_question1 as boolean,\n\t\tsensei_stage1_question2 as boolean,\n\t\tsensei_stage2_question1 as boolean,\n\t\tsensei_stage3_question1 as boolean,\n\t\tsensei_stage3_question2 as boolean,\n\t\tsensei_stage4_question1 as boolean,\n\t\tsensei_stage5_question1 as boolean,\n\t\tsensei_steeringcommitteereview as string,\n\t\tsensei_steeringcommitteereview_approved_yn as boolean,\n\t\tsensei_steeringcommitteereviewname as string,\n\t\tsensei_targetfinish as string,\n\t\tsensei_uptimetargets as string,\n\t\tsensei_urgentresponsetargets as string,\n\t\tstageid as string,\n\t\tstatecode as short,\n\t\tstatuscode as integer,\n\t\ttimezoneruleversionnumber as short,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\ttraversedpath as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiproject.json',\n\tdocumentForm: 'documentPerLine',\n\tpartitionBy('hash', 1)) ~> SourceProject\nsource(output(\n\t\taccessmode as short,\n\t\tactivedirectoryguid as string,\n\t\taddress1_addressid as string,\n\t\taddress1_addresstypecode as short,\n\t\taddress1_city as string,\n\t\taddress1_composite as string,\n\t\taddress1_country as string,\n\t\taddress1_county as string,\n\t\taddress1_fax as string,\n\t\taddress1_latitude as string,\n\t\taddress1_line1 as string,\n\t\taddress1_line2 as string,\n\t\taddress1_line3 as string,\n\t\taddress1_longitude as string,\n\t\taddress1_name as string,\n\t\taddress1_postalcode as string,\n\t\taddress1_postofficebox as string,\n\t\taddress1_shippingmethodcode as short,\n\t\taddress1_stateorprovince as string,\n\t\taddress1_telephone1 as string,\n\t\taddress1_telephone2 as string,\n\t\taddress1_telephone3 as string,\n\t\taddress1_upszone as string,\n\t\taddress1_utcoffset as string,\n\t\taddress2_addressid as string,\n\t\taddress2_addresstypecode as short,\n\t\taddress2_city as string,\n\t\taddress2_composite as string,\n\t\taddress2_country as string,\n\t\taddress2_county as string,\n\t\taddress2_fax as string,\n\t\taddress2_latitude as string,\n\t\taddress2_line1 as string,\n\t\taddress2_line2 as string,\n\t\taddress2_line3 as string,\n\t\taddress2_longitude as string,\n\t\taddress2_name as string,\n\t\taddress2_postalcode as string,\n\t\taddress2_postofficebox as string,\n\t\taddress2_shippingmethodcode as short,\n\t\taddress2_stateorprovince as string,\n\t\taddress2_telephone1 as string,\n\t\taddress2_telephone2 as string,\n\t\taddress2_telephone3 as string,\n\t\taddress2_upszone as string,\n\t\taddress2_utcoffset as string,\n\t\tapplicationid as string,\n\t\tapplicationiduri as string,\n\t\tazureactivedirectoryobjectid as string,\n\t\tazuredeletedon as string,\n\t\tazurestate as short,\n\t\tbusinessunitid as string,\n\t\tbusinessunitidname as string,\n\t\tcalendarid as string,\n\t\tcaltype as short,\n\t\tcdm_company as string,\n\t\tcdm_companyname as string,\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\tdefaultfilterspopulated as boolean,\n\t\tdefaultmailbox as string,\n\t\tdefaultmailboxname as string,\n\t\tdefaultodbfoldername as string,\n\t\tdeletedstate as short,\n\t\tdisabledreason as string,\n\t\tdisplayinserviceviews as boolean,\n\t\tdomainname as string,\n\t\temailrouteraccessapproval as short,\n\t\temployeeid as string,\n\t\tentityimage_timestamp as string,\n\t\tentityimage_url as string,\n\t\tentityimageid as string,\n\t\texchangerate as double,\n\t\tfirstname as string,\n\t\tfullname as string,\n\t\tgovernmentid as string,\n\t\thomephone as string,\n\t\tidentityid as short,\n\t\timportsequencenumber as string,\n\t\tincomingemaildeliverymethod as short,\n\t\tinternalemailaddress as string,\n\t\tinvitestatuscode as short,\n\t\tisactivedirectoryuser as string,\n\t\tisdisabled as boolean,\n\t\tisemailaddressapprovedbyo365admin as boolean,\n\t\tisintegrationuser as boolean,\n\t\tislicensed as boolean,\n\t\tissyncwithdirectory as boolean,\n\t\tjobtitle as string,\n\t\tlastname as string,\n\t\tlatestupdatetime as string,\n\t\tmiddlename as string,\n\t\tmobilealertemail as string,\n\t\tmobileofflineprofileid as string,\n\t\tmobileofflineprofileidname as string,\n\t\tmobilephone as string,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\tmsdyn_gdproptout as boolean,\n\t\tnickname as string,\n\t\torganizationid as string,\n\t\torganizationidname as string,\n\t\toutgoingemaildeliverymethod as short,\n\t\toverriddencreatedon as string,\n\t\tparentsystemuserid as string,\n\t\tparentsystemuseridname as string,\n\t\tparentsystemuseridyominame as string,\n\t\tpassporthi as string,\n\t\tpassportlo as string,\n\t\tpersonalemailaddress as string,\n\t\tphotourl as string,\n\t\tpositionid as string,\n\t\tpositionidname as string,\n\t\tpreferredaddresscode as short,\n\t\tpreferredemailcode as short,\n\t\tpreferredphonecode as short,\n\t\tprocessid as string,\n\t\tqueueid as string,\n\t\tqueueidname as string,\n\t\tsalutation as string,\n\t\tsetupuser as boolean,\n\t\tsharepointemailaddress as string,\n\t\tsiteid as string,\n\t\tsiteidname as string,\n\t\tskills as string,\n\t\tstageid as string,\n\t\tsystemuserid as string,\n\t\tterritoryid as string,\n\t\tterritoryidname as string,\n\t\ttimezoneruleversionnumber as string,\n\t\ttitle as string,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\ttraversedpath as string,\n\t\tuserlicensetype as short,\n\t\tuserpuid as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string,\n\t\twindowsliveid as string,\n\t\tyammeremailaddress as string,\n\t\tyammeruserid as string,\n\t\tyomifirstname as string,\n\t\tyomifullname as string,\n\t\tyomilastname as string,\n\t\tyomimiddlename as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiuser.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiuser\nsource(output(\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\texchangerate as string,\n\t\timportsequencenumber as string,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\toverriddencreatedon as string,\n\t\townerid as string,\n\t\towneridname as string,\n\t\towneridtype as string,\n\t\towneridyominame as string,\n\t\towningbusinessunit as string,\n\t\towningbusinessunitname as string,\n\t\towningteam as string,\n\t\towninguser as string,\n\t\tsc_atomissueid as short,\n\t\tsc_cause as string,\n\t\tsc_completiondate as timestamp,\n\t\tsc_effect as string,\n\t\tsc_issuecategory as string,\n\t\tsc_issuephase as integer,\n\t\tsc_issuerecordurl as string,\n\t\tsc_issuescoringscheme as integer,\n\t\tsc_issuestatus as integer,\n\t\tsc_issuestrategy as integer,\n\t\tsc_lastreviewdate as string,\n\t\tsc_pidcolourcurrent as string,\n\t\tsc_pidlevelcurrent as integer,\n\t\tsc_pidscorecurrent as short,\n\t\tsc_recordtype as integer,\n\t\tsensei_assignedto as string,\n\t\tsensei_assignedtoname as string,\n\t\tsensei_assignedtoyominame as string,\n\t\tsensei_category as string,\n\t\tsensei_costimpact as string,\n\t\tsensei_costimpact_base as string,\n\t\tsensei_description as string,\n\t\tsensei_duedate as string,\n\t\tsensei_id as short,\n\t\tsensei_issueid as string,\n\t\tsensei_name as string,\n\t\tsensei_portfolio as string,\n\t\tsensei_portfolioname as string,\n\t\tsensei_priority as short,\n\t\tsensei_program as string,\n\t\tsensei_programname as string,\n\t\tsensei_project as string,\n\t\tsensei_projectname as string,\n\t\tsensei_resolution as string,\n\t\tsensei_scheduleimpact as string,\n\t\tstatecode as short,\n\t\tstatuscode as short,\n\t\ttimezoneruleversionnumber as short,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiissue.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiIssue\nFilterIssue, SourceStringMap lookup(RiskStatus == value\n\t&& \"sc_riskstatus\" == attributename,\n\tmultiple: false,\n\tpickup: 'first',\n\tasc(attributename, true),\n\tbroadcast: 'right')~> LookupIssueStatus\nLookupIssueStatus select(mapColumn(\n\t\tSenseiIssueStatus = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectIssueStatus\nSelectIssueStatus, SourceStringMap lookup(iif(equals(toString(RiskRecordTypeKey), \"2\"),\"Issue\",toString(RiskRecordTypeKey)) == SourceStringMap@value\n\t&& \"sc_recordtype\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupRecordType\nLookupRecordType select(mapColumn(\n\t\tSenseiRecordType = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectRecordType\nSelectRecordType, SourceStringMap lookup(CurrentDescription == SourceStringMap@value\n\t&& \"sc_pidlevelcurrent\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupLevelCurrent\nLookupLevelCurrent select(mapColumn(\n\t\tSenseiLevelCurrent = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectLevelCurrent\nSelectLevelTarget, SourceStringMap lookup(\"sc_riskcategory\" == SourceStringMap@attributename\n\t&& RiskSource == SourceStringMap@value,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupIssuecategory\nLookupIssuecategory select(mapColumn(\n\t\tSenseiIssueCategory = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectIssueCategory\nSelectIssueCategory, SourceStringMap lookup(RiskPhase == SourceStringMap@value\n\t&& \"sc_riskphase\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupIssuePhase\nLookupIssuePhase select(mapColumn(\n\t\tSenseiIssuePhase = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectIssuePhase\nSelectIssuePhase, SourceStringMap lookup(PlanStrategy == SourceStringMap@value\n\t&& \"sc_riskstrategy\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupIssueStrategy\nLookupIssueStrategy select(mapColumn(\n\t\tSenseiIssueStrategy = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectIssueStrategy\nSelectIssueStrategy, SourceStringMap lookup(toString(ImpactScoringScheme.name) == SourceStringMap@value\n\t&& \"sc_scoringscheme\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupIssueScoringScheme\nLookupIssueScoringScheme select(mapColumn(\n\t\tSenseiScoringScheme = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectIssueScoringScheme\nSelectIssueScoringScheme, SourceSenseiOwner lookup(concat(lower(PlanFirstName),\" \", lower(PlanlastName)) == lower(name),\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> LookupOwnerName\nLookupOwnerName select(mapColumn(\n\t\tRiskOwnerId = ownerid,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectOwnerID\nSelectOwnerID, SourceProject lookup(upper(replace(wbsItem,\"-\",\"\")) == upper(replace(sc_cpnumber,\"-\",\"\")),\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> LookupCPNumber\nFilterIssuesWithoutProjects select(mapColumn(\n\t\tSenseiProjectId = sensei_projectid,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectSenseiProject\nSelectSenseiProject, SourceSenseiIssue lookup(RiskId == toInteger(sc_atomissueid),\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> LookupIssueId\nLookupIssueId derive(SenseiIssueID = iifNull(sensei_issueid, uuid(), sensei_issueid)) ~> AddColumnRiskID\nAddColumnRiskID derive(SenseilIssueURL = $ARMURL+iif(equals(toString(ImpactBusinessAreaKey),'true'),\"1\", toString(businessAreaKey))+\"/impact/\"+ toString(ImpactKey)) ~> AddSenseiURL\nAddSenseiURL derive(SenseiTitle = substring(RiskTitle, 0, 100)) ~> AddSenseiTitle\nSelectLevelCurrent, SourceStringMap lookup(TargetDescription == SourceStringMap@value\n\t&& \"sc_pidleveltarget\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupLevelTarget\nLookupLevelTarget select(mapColumn(\n\t\tSenseiLevelTarget = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectLevelTarget\nSourceARM filter(equals(toString(RiskRecordTypeKey),'2')) ~> FilterIssue\nLookupCPNumber filter(isNull(sensei_projectid)==false()) ~> FilterIssuesWithoutProjects\nAddSenseiTitle sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tpartitionFileNames:['ARMFinalIssue.json'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> SinkIssues"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_lookup_risk')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "integration/projects"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceARM"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceStringMap"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiOwner"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiRisk"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceProject"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiuser"
+						},
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SourceSenseiIssue"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "Link_APAC_CAT_Staging",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SinkRisk"
+						}
+					],
+					"transformations": [
+						{
+							"name": "LookupRiskStatus"
+						},
+						{
+							"name": "SelectRiskStatus"
+						},
+						{
+							"name": "LookupRecordType"
+						},
+						{
+							"name": "SelectRecordType"
+						},
+						{
+							"name": "LookupLevelCurrent"
+						},
+						{
+							"name": "SelectLevelCurrent"
+						},
+						{
+							"name": "LookupRiskcategory"
+						},
+						{
+							"name": "SelectRiskCategory"
+						},
+						{
+							"name": "LookupRiskPhase"
+						},
+						{
+							"name": "SelectRiskPhase"
+						},
+						{
+							"name": "LookupRiskStrategy"
+						},
+						{
+							"name": "SelectRiskStrategy"
+						},
+						{
+							"name": "LookupScoringScheme"
+						},
+						{
+							"name": "SelectScoringScheme"
+						},
+						{
+							"name": "LookupOwnerName"
+						},
+						{
+							"name": "SelectOwnerID"
+						},
+						{
+							"name": "LookupCPNumber"
+						},
+						{
+							"name": "SelectSenseiProject"
+						},
+						{
+							"name": "LookupRiskId"
+						},
+						{
+							"name": "AddColumnRiskID"
+						},
+						{
+							"name": "AddSenseiURL"
+						},
+						{
+							"name": "AddSenseiTitle"
+						},
+						{
+							"name": "LookupLevelTarget"
+						},
+						{
+							"name": "SelectLevelTarget"
+						},
+						{
+							"name": "FilterRisk"
+						},
+						{
+							"name": "FilterRiskWithoutProject"
+						}
+					],
+					"script": "parameters{\n\tARMURL as string (\"https://apac.activeriskmanager.com/arm/1/\")\n}\nsource(output(\n\t\tAssessmentKey as short,\n\t\tCurrentColorRef as string,\n\t\tCurrentDescription as string,\n\t\tCurrentRiskScore as double,\n\t\tImpactBusinessAreaKey as boolean,\n\t\tImpactItemKey as short,\n\t\tImpactKey as short,\n\t\tImpactName as string,\n\t\tImpactRiskId as short,\n\t\tImpactRiskKey as short,\n\t\tImpactScoringScheme as (name as string),\n\t\tPlanEmail as string,\n\t\tPlanFirstName as string,\n\t\tPlanKey as short,\n\t\tPlanName as string,\n\t\tPlanStrategy as string,\n\t\tPlanlastName as string,\n\t\tRiskCause as string,\n\t\tRiskDescription as string,\n\t\tRiskEffect as string,\n\t\tRiskId as short,\n\t\tRiskKey as short,\n\t\tRiskLastReview as string,\n\t\tRiskPhase as string,\n\t\tRiskRecordTypeKey as short,\n\t\tRiskSource as string,\n\t\tRiskStatus as string,\n\t\tRiskTitle as string,\n\t\tTargetColorRef as string,\n\t\tTargetDescription as string,\n\t\tTargetRiskScore as double,\n\t\tbudgetForTime as integer,\n\t\tbusinessAreaKey as boolean,\n\t\texpectedDuration as integer,\n\t\tisSummaryTask as boolean,\n\t\titem as (budgetForCost as double, businessAreaKey as boolean, caveatKey as short, classificationsKey as short, comments as string, configurationKey as short, currencyKey as boolean, customProjectTextField as string, description as string, distributionKey as boolean, expectedCost as double, itemTypeKey as short, key as short, maximumCost as double, minimumCost as double, name as string, nodeStatusKey as boolean, ownerKey as short, plannedCost as double, planningApplicationKey as boolean, reviewPeriod as short, scoringSchemeGroupKey as short, treeTypeKey as boolean),\n\t\titemKey as short,\n\t\tmanualOverride as double,\n\t\tmaximumDuration as boolean,\n\t\tminimumDuration as boolean,\n\t\tpercentageComplete as double,\n\t\tplannedDuration as boolean,\n\t\tprovisionType1 as double,\n\t\tprovisionType2 as double,\n\t\tstatusKey as short,\n\t\ttotalProvision as double,\n\t\twbsItem as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'ARMRiskData.json',\n\tdocumentForm: 'documentPerLine') ~> SourceARM\nsource(output(\n\t\tattributename as string,\n\t\tattributevalue as integer,\n\t\tdisplayorder as short,\n\t\tlangid as short,\n\t\tobjecttypecode as string,\n\t\torganizationid as string,\n\t\tstringmapid as string,\n\t\tvalue as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseistringmap.json',\n\tdocumentForm: 'documentPerLine') ~> SourceStringMap\nsource(output(\n\t\tname as string,\n\t\townerid as string,\n\t\towneridtype as string,\n\t\tversionnumber as string,\n\t\tyominame as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiowner.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiOwner\nsource(output(\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\texchangerate as string,\n\t\timportsequencenumber as string,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\toverriddencreatedon as string,\n\t\townerid as string,\n\t\towneridname as string,\n\t\towneridtype as string,\n\t\towneridyominame as string,\n\t\towningbusinessunit as string,\n\t\towningbusinessunitname as string,\n\t\towningteam as string,\n\t\towninguser as string,\n\t\tsc_atomriskid as short,\n\t\tsc_completiondate as timestamp,\n\t\tsc_lastreviewdate as timestamp,\n\t\tsc_pidcolourcurrent as string,\n\t\tsc_pidcolourtarget as string,\n\t\tsc_pidlevelcurrent as integer,\n\t\tsc_pidleveltarget as integer,\n\t\tsc_pidscorecurrent as short,\n\t\tsc_pidscoretarget as short,\n\t\tsc_recordtype as integer,\n\t\tsc_riskcategory as integer,\n\t\tsc_riskphase as integer,\n\t\tsc_riskrecordurl as string,\n\t\tsc_riskstatus as integer,\n\t\tsc_riskstrategy as integer,\n\t\tsc_scoringscheme as integer,\n\t\tsensei_assignedto as string,\n\t\tsensei_assignedtoname as string,\n\t\tsensei_assignedtoyominame as string,\n\t\tsensei_benefit as string,\n\t\tsensei_benefitname as string,\n\t\tsensei_category as string,\n\t\tsensei_consequence as integer,\n\t\tsensei_consequenceindex as short,\n\t\tsensei_contingencyplan as string,\n\t\tsensei_cost as string,\n\t\tsensei_cost_base as string,\n\t\tsensei_description as string,\n\t\tsensei_duedate as string,\n\t\tsensei_id as short,\n\t\tsensei_likelihood as integer,\n\t\tsensei_likelihoodindex as short,\n\t\tsensei_mitigationplan as string,\n\t\tsensei_name as string,\n\t\tsensei_portfolio as string,\n\t\tsensei_portfolioname as string,\n\t\tsensei_program as string,\n\t\tsensei_programname as string,\n\t\tsensei_project as string,\n\t\tsensei_projectname as string,\n\t\tsensei_riskid as string,\n\t\tsensei_riskscore as short,\n\t\tsensei_trigger as integer,\n\t\tsensei_triggerdescription as string,\n\t\tstatecode as short,\n\t\tstatuscode as short,\n\t\ttimezoneruleversionnumber as short,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseirisk.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiRisk\nsource(output(\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\texchangerate as double,\n\t\timportsequencenumber as short,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\toverriddencreatedon as string,\n\t\townerid as string,\n\t\towneridname as string,\n\t\towneridtype as string,\n\t\towneridyominame as string,\n\t\towningbusinessunit as string,\n\t\towningbusinessunitname as string,\n\t\towningteam as string,\n\t\towninguser as string,\n\t\tprocessid as string,\n\t\tsc_approvedcapex as string,\n\t\tsc_approvedcapex_base as string,\n\t\tsc_approver as string,\n\t\tsc_approvername as string,\n\t\tsc_approveryominame as string,\n\t\tsc_asa as boolean,\n\t\tsc_asapercent as double,\n\t\tsc_assumptions as string,\n\t\tsc_atomprojectid as string,\n\t\tsc_backgroundbusinessneeds as string,\n\t\tsc_budgetsentforapproval as boolean,\n\t\tsc_company as string,\n\t\tsc_companyname as string,\n\t\tsc_constraints as string,\n\t\tsc_costdriver1 as string,\n\t\tsc_costdriver1name as string,\n\t\tsc_costdriver2 as string,\n\t\tsc_costdriver2name as string,\n\t\tsc_costresourcetaskimports as boolean,\n\t\tsc_cpnumber as string,\n\t\tsc_currentffc as string,\n\t\tsc_currentffc_base as string,\n\t\tsc_currentgatepimms as string,\n\t\tsc_deliveryprogram as string,\n\t\tsc_dependencies as string,\n\t\tsc_developmentmanager as string,\n\t\tsc_developmentmanageremployee as string,\n\t\tsc_developmentmanageremployeename as string,\n\t\tsc_developmentmanagername as string,\n\t\tsc_developmentmanageryominame as string,\n\t\tsc_documentlibrarytemplateapplied as boolean,\n\t\tsc_endorser as string,\n\t\tsc_endorsername as string,\n\t\tsc_endorseryominame as string,\n\t\tsc_execcapitalprogram as string,\n\t\tsc_financialitemforrecordinglabouractuals as string,\n\t\tsc_financialitemforrecordinglabouractualsname as string,\n\t\tsc_finopsapprovalspending as boolean,\n\t\tsc_forecastforrecordingairportcostactuals as string,\n\t\tsc_forecastforrecordingairportcostactualsname as string,\n\t\tsc_forecastforrecordingcapitalinterestactual as string,\n\t\tsc_forecastforrecordingcapitalinterestactualname as string,\n\t\tsc_forecastforrecordingcostrecoveriesactuals as string,\n\t\tsc_forecastforrecordingcostrecoveriesactualsname as string,\n\t\tsc_forecastforrecordingwsoactuals as string,\n\t\tsc_forecastforrecordingwsoactualsname as string,\n\t\tsc_gate1document as string,\n\t\tsc_healthandsafety as string,\n\t\tsc_inscope as string,\n\t\tsc_isasenseiproject as boolean,\n\t\tsc_keydatestatus as string,\n\t\tsc_keyproject as boolean,\n\t\tsc_methods as string,\n\t\tsc_migrationproject as boolean,\n\t\tsc_outofscope as string,\n\t\tsc_p50 as string,\n\t\tsc_papno as string,\n\t\tsc_papnumber as string,\n\t\tsc_percows as string,\n\t\tsc_physicallocation as string,\n\t\tsc_pimsid as string,\n\t\tsc_precinct as string,\n\t\tsc_previousfundingamount as string,\n\t\tsc_previousfundingamount_base as string,\n\t\tsc_previousfundingdateapproved as string,\n\t\tsc_previousfundingrequestsapproved as string,\n\t\tsc_productowner as string,\n\t\tsc_productownername as string,\n\t\tsc_productowneryominame as string,\n\t\tsc_projectdriver as integer,\n\t\tsc_projectgroup as string,\n\t\tsc_projectgroupname as string,\n\t\tsc_projectmanager as string,\n\t\tsc_projectmanagername as string,\n\t\tsc_relatedasset as boolean,\n\t\tsc_relatedassetitem as string,\n\t\tsc_totalcostofthisrequestcapex as double,\n\t\tsc_totalcostofthisrequestcapex_base as double,\n\t\tsc_totalforecast as string,\n\t\tsc_totalforecast_base as string,\n\t\tsc_totalforecast_date as string,\n\t\tsc_totalforecast_state as short,\n\t\tsc_valueofworkstatus as integer,\n\t\tsc_variationsummaryapproved as double,\n\t\tsc_variationsummaryapproved_base as double,\n\t\tsc_variationsummaryapproved_date as timestamp,\n\t\tsc_variationsummaryapproved_state as short,\n\t\tsc_variationsummaryforecast as double,\n\t\tsc_variationsummaryforecast_base as double,\n\t\tsc_variationsummaryforecast_date as timestamp,\n\t\tsc_variationsummaryforecast_state as short,\n\t\tsc_variationsummarypending as double,\n\t\tsc_variationsummarypending_base as double,\n\t\tsc_variationsummarypending_date as timestamp,\n\t\tsc_variationsummarypending_state as short,\n\t\tsc_wfgate2commoncomplete as boolean,\n\t\tsc_wfgate2conceptdesignphasepcb as integer,\n\t\tsc_wfgate2currentschedule as integer,\n\t\tsc_wfgate2evidenceoffundingapproval as integer,\n\t\tsc_wfgate2executeddesconsultantappointments as integer,\n\t\tsc_wfgate2executedpmconsultantappointment as integer,\n\t\tsc_wfgate2pmpconceptdesign as integer,\n\t\tsc_wfgate2projectrequirementsconceptdesign as integer,\n\t\tsc_wfgate2safetyindesignhazardanalysis as integer,\n\t\tsc_wfgate2stakeholderconceptdesignsignoff as integer,\n\t\tsc_wfgate2tradmegacomplete as boolean,\n\t\tsc_wfgate3commoncomplete as boolean,\n\t\tsc_wfgate3currentbaselineschedule as integer,\n\t\tsc_wfgate3executeddesignconsultantappoints as integer,\n\t\tsc_wfgate3executedpmconsultantappointment as integer,\n\t\tsc_wfgate3planningpermitrequired as integer,\n\t\tsc_wfgate3pmpschemedesignupdate as integer,\n\t\tsc_wfgate3principalprojectreqschematicdesign as integer,\n\t\tsc_wfgate3safetyindesignriskassessment as integer,\n\t\tsc_wfgate3schemedesignphasepcb as integer,\n\t\tsc_wfgate3stakeholderconceptdesignsignoff as integer,\n\t\tsc_wfgate4commoncomplete as boolean,\n\t\tsc_wfgate4currentbaselineschedule as integer,\n\t\tsc_wfgate4currentupdatedriskregister as integer,\n\t\tsc_wfgate4designconstructcomplete as boolean,\n\t\tsc_wfgate4designrequirements as integer,\n\t\tsc_wfgate4docproccomplete as boolean,\n\t\tsc_wfgate4executeddesconsultantappointments as integer,\n\t\tsc_wfgate4executedpmconsultantappointment as integer,\n\t\tsc_wfgate4investmentcommiteeboardpaper as integer,\n\t\tsc_wfgate4minorworkscomplete as boolean,\n\t\tsc_wfgate4planningpermit as integer,\n\t\tsc_wfgate4pmpschemedesignupdateifrequired as integer,\n\t\tsc_wfgate4procurementplan as integer,\n\t\tsc_wfgate4readytoproceedbusinesscaseapproval as integer,\n\t\tsc_wfgate4stakeholderschemedesignhandover as integer,\n\t\tsc_wfgate4stakeholdertenderdocsignoff as integer,\n\t\tsc_wfgate4tenderpricingdocuments as integer,\n\t\tsc_wfgate4tenderreadypcbapamtemplate as integer,\n\t\tsc_wfgate4tenderreadyphasepcb as integer,\n\t\tsc_wfgate4tradmegacomplete as boolean,\n\t\tsc_wfgate5bankguaranteereleasepartial as integer,\n\t\tsc_wfgate5buildingactivitycompletion as integer,\n\t\tsc_wfgate5buildingactivityconsent as integer,\n\t\tsc_wfgate5buildingpermit as integer,\n\t\tsc_wfgate5certcomplianceofoccupancyforuse as integer,\n\t\tsc_wfgate5certificateofpracticalcompletion as integer,\n\t\tsc_wfgate5commoncomplete as boolean,\n\t\tsc_wfgate5currentbaselineprojectschedule as integer,\n\t\tsc_wfgate5designconstructcomplete as boolean,\n\t\tsc_wfgate5docproccomplete as boolean,\n\t\tsc_wfgate5executedcontractdesignappointments as integer,\n\t\tsc_wfgate5executedcontractfordeliveryworks as integer,\n\t\tsc_wfgate5executedpmconsultantsappointments as integer,\n\t\tsc_wfgate5minorworkscomplete as boolean,\n\t\tsc_wfgate5percow as integer,\n\t\tsc_wfgate5pmpdelivery as integer,\n\t\tsc_wfgate5practicalcompletionpcb as integer,\n\t\tsc_wfgate5submissionofasbuiltdocumentation as integer,\n\t\tsc_wfgate5tradmegacomplete as boolean,\n\t\tsc_wfgate6approvedasbuiltdocuments as integer,\n\t\tsc_wfgate6commoncomplete as boolean,\n\t\tsc_wfgate6designconstructcomplete as boolean,\n\t\tsc_wfgate6minorworkscomplete as boolean,\n\t\tsc_wfgate6postprojectreview as integer,\n\t\tsc_wfgate6tradmegacomplete as boolean,\n\t\tsc_wfgate7bankguaranteereleasefinal as integer,\n\t\tsc_wfgate7commoncomplete as boolean,\n\t\tsc_wfgate7deedofrelease as integer,\n\t\tsc_wfgate7designconstructcomplete as boolean,\n\t\tsc_wfgate7finalcertificate as integer,\n\t\tsc_wfgate7minorworkscomplete as boolean,\n\t\tsc_wfgate7tradmegacomplete as boolean,\n\t\tsensei_actualcostlocked as boolean,\n\t\tsensei_baselineschedulereview as string,\n\t\tsensei_baselineschedulereview_approved_yn as boolean,\n\t\tsensei_baselineschedulereviewname as string,\n\t\tsensei_budgetlocked as boolean,\n\t\tsensei_businessbenefits as string,\n\t\tsensei_channelid as string,\n\t\tsensei_costtype as string,\n\t\tsensei_criticalresponsetargets as string,\n\t\tsensei_currentstage as string,\n\t\tsensei_department as integer,\n\t\tsensei_departmentalreview as string,\n\t\tsensei_departmentalreview_approved_yn as boolean,\n\t\tsensei_departmentalreviewname as string,\n\t\tsensei_description as string,\n\t\tsensei_devops_projectid as string,\n\t\tsensei_devops_projectidname as string,\n\t\tsensei_effortcompleted as double,\n\t\tsensei_effortremaining as double,\n\t\tsensei_efforttotal as double,\n\t\tsensei_escalationcontact as string,\n\t\tsensei_escalationmanager as string,\n\t\tsensei_expectedbenefits as string,\n\t\tsensei_externalprojectid as string,\n\t\tsensei_fieldlock as string,\n\t\tsensei_financialbenefits as double,\n\t\tsensei_financialbenefits_base as double,\n\t\tsensei_forecastcostlocked as boolean,\n\t\tsensei_formupdatedtoken as string,\n\t\tsensei_highresponsetargets as string,\n\t\tsensei_investmentcategory as integer,\n\t\tsensei_lastmodifiedfromrefresh as string,\n\t\tsensei_lastsyncdate as timestamp,\n\t\tsensei_location as string,\n\t\tsensei_name as string,\n\t\tsensei_numberofreleases as string,\n\t\tsensei_operationalpriority as string,\n\t\tsensei_operationstype as string,\n\t\tsensei_organisationalchangeimpact as string,\n\t\tsensei_originofchange as string,\n\t\tsensei_p4twprojectid as string,\n\t\tsensei_p4twprojectidname as string,\n\t\tsensei_percentcomplete as short,\n\t\tsensei_portfolio as string,\n\t\tsensei_portfolioname as string,\n\t\tsensei_problemstatement as string,\n\t\tsensei_productgoals as string,\n\t\tsensei_program as string,\n\t\tsensei_programname as string,\n\t\tsensei_projectclosurereview as string,\n\t\tsensei_projectclosurereview_approved_yn as boolean,\n\t\tsensei_projectclosurereviewname as string,\n\t\tsensei_projectfinish as timestamp,\n\t\tsensei_projectid as string,\n\t\tsensei_projectmanager as string,\n\t\tsensei_projectmanagername as string,\n\t\tsensei_projectmanageryominame as string,\n\t\tsensei_projectonline_projectid as string,\n\t\tsensei_projectonline_projectidname as string,\n\t\tsensei_projectstart as timestamp,\n\t\tsensei_projecttype as string,\n\t\tsensei_projecttypename as string,\n\t\tsensei_projectvision as string,\n\t\tsensei_proposedcosts as double,\n\t\tsensei_proposedcosts_base as double,\n\t\tsensei_proposedfinish as string,\n\t\tsensei_proposedgolivedate as string,\n\t\tsensei_proposedstart as string,\n\t\tsensei_releasestrategy as string,\n\t\tsensei_returnoninvestment as double,\n\t\tsensei_routineresponsetargets as string,\n\t\tsensei_sponsor as string,\n\t\tsensei_sponsorname as string,\n\t\tsensei_sponsoryominame as string,\n\t\tsensei_stage1_question1 as boolean,\n\t\tsensei_stage1_question2 as boolean,\n\t\tsensei_stage2_question1 as boolean,\n\t\tsensei_stage3_question1 as boolean,\n\t\tsensei_stage3_question2 as boolean,\n\t\tsensei_stage4_question1 as boolean,\n\t\tsensei_stage5_question1 as boolean,\n\t\tsensei_steeringcommitteereview as string,\n\t\tsensei_steeringcommitteereview_approved_yn as boolean,\n\t\tsensei_steeringcommitteereviewname as string,\n\t\tsensei_targetfinish as string,\n\t\tsensei_uptimetargets as string,\n\t\tsensei_urgentresponsetargets as string,\n\t\tstageid as string,\n\t\tstatecode as short,\n\t\tstatuscode as integer,\n\t\ttimezoneruleversionnumber as short,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\ttraversedpath as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiproject.json',\n\tdocumentForm: 'documentPerLine',\n\tpartitionBy('hash', 1)) ~> SourceProject\nsource(output(\n\t\taccessmode as short,\n\t\tactivedirectoryguid as string,\n\t\taddress1_addressid as string,\n\t\taddress1_addresstypecode as short,\n\t\taddress1_city as string,\n\t\taddress1_composite as string,\n\t\taddress1_country as string,\n\t\taddress1_county as string,\n\t\taddress1_fax as string,\n\t\taddress1_latitude as string,\n\t\taddress1_line1 as string,\n\t\taddress1_line2 as string,\n\t\taddress1_line3 as string,\n\t\taddress1_longitude as string,\n\t\taddress1_name as string,\n\t\taddress1_postalcode as string,\n\t\taddress1_postofficebox as string,\n\t\taddress1_shippingmethodcode as short,\n\t\taddress1_stateorprovince as string,\n\t\taddress1_telephone1 as string,\n\t\taddress1_telephone2 as string,\n\t\taddress1_telephone3 as string,\n\t\taddress1_upszone as string,\n\t\taddress1_utcoffset as string,\n\t\taddress2_addressid as string,\n\t\taddress2_addresstypecode as short,\n\t\taddress2_city as string,\n\t\taddress2_composite as string,\n\t\taddress2_country as string,\n\t\taddress2_county as string,\n\t\taddress2_fax as string,\n\t\taddress2_latitude as string,\n\t\taddress2_line1 as string,\n\t\taddress2_line2 as string,\n\t\taddress2_line3 as string,\n\t\taddress2_longitude as string,\n\t\taddress2_name as string,\n\t\taddress2_postalcode as string,\n\t\taddress2_postofficebox as string,\n\t\taddress2_shippingmethodcode as short,\n\t\taddress2_stateorprovince as string,\n\t\taddress2_telephone1 as string,\n\t\taddress2_telephone2 as string,\n\t\taddress2_telephone3 as string,\n\t\taddress2_upszone as string,\n\t\taddress2_utcoffset as string,\n\t\tapplicationid as string,\n\t\tapplicationiduri as string,\n\t\tazureactivedirectoryobjectid as string,\n\t\tazuredeletedon as string,\n\t\tazurestate as short,\n\t\tbusinessunitid as string,\n\t\tbusinessunitidname as string,\n\t\tcalendarid as string,\n\t\tcaltype as short,\n\t\tcdm_company as string,\n\t\tcdm_companyname as string,\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\tdefaultfilterspopulated as boolean,\n\t\tdefaultmailbox as string,\n\t\tdefaultmailboxname as string,\n\t\tdefaultodbfoldername as string,\n\t\tdeletedstate as short,\n\t\tdisabledreason as string,\n\t\tdisplayinserviceviews as boolean,\n\t\tdomainname as string,\n\t\temailrouteraccessapproval as short,\n\t\temployeeid as string,\n\t\tentityimage_timestamp as string,\n\t\tentityimage_url as string,\n\t\tentityimageid as string,\n\t\texchangerate as double,\n\t\tfirstname as string,\n\t\tfullname as string,\n\t\tgovernmentid as string,\n\t\thomephone as string,\n\t\tidentityid as short,\n\t\timportsequencenumber as string,\n\t\tincomingemaildeliverymethod as short,\n\t\tinternalemailaddress as string,\n\t\tinvitestatuscode as short,\n\t\tisactivedirectoryuser as string,\n\t\tisdisabled as boolean,\n\t\tisemailaddressapprovedbyo365admin as boolean,\n\t\tisintegrationuser as boolean,\n\t\tislicensed as boolean,\n\t\tissyncwithdirectory as boolean,\n\t\tjobtitle as string,\n\t\tlastname as string,\n\t\tlatestupdatetime as string,\n\t\tmiddlename as string,\n\t\tmobilealertemail as string,\n\t\tmobileofflineprofileid as string,\n\t\tmobileofflineprofileidname as string,\n\t\tmobilephone as string,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\tmsdyn_gdproptout as boolean,\n\t\tnickname as string,\n\t\torganizationid as string,\n\t\torganizationidname as string,\n\t\toutgoingemaildeliverymethod as short,\n\t\toverriddencreatedon as string,\n\t\tparentsystemuserid as string,\n\t\tparentsystemuseridname as string,\n\t\tparentsystemuseridyominame as string,\n\t\tpassporthi as string,\n\t\tpassportlo as string,\n\t\tpersonalemailaddress as string,\n\t\tphotourl as string,\n\t\tpositionid as string,\n\t\tpositionidname as string,\n\t\tpreferredaddresscode as short,\n\t\tpreferredemailcode as short,\n\t\tpreferredphonecode as short,\n\t\tprocessid as string,\n\t\tqueueid as string,\n\t\tqueueidname as string,\n\t\tsalutation as string,\n\t\tsetupuser as boolean,\n\t\tsharepointemailaddress as string,\n\t\tsiteid as string,\n\t\tsiteidname as string,\n\t\tskills as string,\n\t\tstageid as string,\n\t\tsystemuserid as string,\n\t\tterritoryid as string,\n\t\tterritoryidname as string,\n\t\ttimezoneruleversionnumber as string,\n\t\ttitle as string,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\ttraversedpath as string,\n\t\tuserlicensetype as short,\n\t\tuserpuid as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string,\n\t\twindowsliveid as string,\n\t\tyammeremailaddress as string,\n\t\tyammeruserid as string,\n\t\tyomifirstname as string,\n\t\tyomifullname as string,\n\t\tyomilastname as string,\n\t\tyomimiddlename as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiuser.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiuser\nsource(output(\n\t\tcreatedby as string,\n\t\tcreatedbyname as string,\n\t\tcreatedbyyominame as string,\n\t\tcreatedon as timestamp,\n\t\tcreatedonbehalfby as string,\n\t\tcreatedonbehalfbyname as string,\n\t\tcreatedonbehalfbyyominame as string,\n\t\texchangerate as string,\n\t\timportsequencenumber as string,\n\t\tmodifiedby as string,\n\t\tmodifiedbyname as string,\n\t\tmodifiedbyyominame as string,\n\t\tmodifiedon as timestamp,\n\t\tmodifiedonbehalfby as string,\n\t\tmodifiedonbehalfbyname as string,\n\t\tmodifiedonbehalfbyyominame as string,\n\t\toverriddencreatedon as string,\n\t\townerid as string,\n\t\towneridname as string,\n\t\towneridtype as string,\n\t\towneridyominame as string,\n\t\towningbusinessunit as string,\n\t\towningbusinessunitname as string,\n\t\towningteam as string,\n\t\towninguser as string,\n\t\tsc_atomissueid as short,\n\t\tsc_cause as string,\n\t\tsc_completiondate as timestamp,\n\t\tsc_effect as string,\n\t\tsc_issuecategory as string,\n\t\tsc_issuephase as integer,\n\t\tsc_issuerecordurl as string,\n\t\tsc_issuescoringscheme as integer,\n\t\tsc_issuestatus as integer,\n\t\tsc_issuestrategy as integer,\n\t\tsc_lastreviewdate as string,\n\t\tsc_pidcolourcurrent as string,\n\t\tsc_pidlevelcurrent as integer,\n\t\tsc_pidscorecurrent as short,\n\t\tsc_recordtype as integer,\n\t\tsensei_assignedto as string,\n\t\tsensei_assignedtoname as string,\n\t\tsensei_assignedtoyominame as string,\n\t\tsensei_category as string,\n\t\tsensei_costimpact as string,\n\t\tsensei_costimpact_base as string,\n\t\tsensei_description as string,\n\t\tsensei_duedate as string,\n\t\tsensei_id as short,\n\t\tsensei_issueid as string,\n\t\tsensei_name as string,\n\t\tsensei_portfolio as string,\n\t\tsensei_portfolioname as string,\n\t\tsensei_priority as short,\n\t\tsensei_program as string,\n\t\tsensei_programname as string,\n\t\tsensei_project as string,\n\t\tsensei_projectname as string,\n\t\tsensei_resolution as string,\n\t\tsensei_scheduleimpact as string,\n\t\tstatecode as short,\n\t\tstatuscode as short,\n\t\ttimezoneruleversionnumber as short,\n\t\ttransactioncurrencyid as string,\n\t\ttransactioncurrencyidname as string,\n\t\tutcconversiontimezonecode as string,\n\t\tversionnumber as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tfileName: 'senseiissue.json',\n\tdocumentForm: 'documentPerLine') ~> SourceSenseiIssue\nFilterRisk, SourceStringMap lookup(RiskStatus == value\n\t&& \"sc_riskstatus\" == attributename,\n\tmultiple: false,\n\tpickup: 'first',\n\tasc(attributename, true),\n\tbroadcast: 'right')~> LookupRiskStatus\nLookupRiskStatus select(mapColumn(\n\t\tSenseiRiskStatus = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectRiskStatus\nSelectRiskStatus, SourceStringMap lookup(iif(equals(toString(RiskRecordTypeKey), \"1\"),\"Risk\",toString(RiskRecordTypeKey)) == SourceStringMap@value\n\t&& \"sc_recordtype\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupRecordType\nLookupRecordType select(mapColumn(\n\t\tSenseiRecordType = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectRecordType\nSelectRecordType, SourceStringMap lookup(CurrentDescription == SourceStringMap@value\n\t&& \"sc_pidlevelcurrent\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupLevelCurrent\nLookupLevelCurrent select(mapColumn(\n\t\tSenseiLevelCurrent = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectLevelCurrent\nSelectLevelTarget, SourceStringMap lookup(\"sc_riskcategory\" == SourceStringMap@attributename\n\t&& RiskSource == SourceStringMap@value,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupRiskcategory\nLookupRiskcategory select(mapColumn(\n\t\tSenseiRiskCategory = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectRiskCategory\nSelectRiskCategory, SourceStringMap lookup(RiskPhase == SourceStringMap@value\n\t&& \"sc_riskphase\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupRiskPhase\nLookupRiskPhase select(mapColumn(\n\t\tSenseiRiskPhase = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectRiskPhase\nSelectRiskPhase, SourceStringMap lookup(PlanStrategy == SourceStringMap@value\n\t&& \"sc_riskstrategy\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupRiskStrategy\nLookupRiskStrategy select(mapColumn(\n\t\tSenseiRiskStrategy = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectRiskStrategy\nSelectRiskStrategy, SourceStringMap lookup(toString(ImpactScoringScheme.name) == SourceStringMap@value\n\t&& \"sc_scoringscheme\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupScoringScheme\nLookupScoringScheme select(mapColumn(\n\t\tSenseiScoringScheme = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectScoringScheme\nSelectScoringScheme, SourceSenseiOwner lookup(concat(lower(PlanFirstName),\" \", lower(PlanlastName)) == lower(name),\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> LookupOwnerName\nLookupOwnerName select(mapColumn(\n\t\tRiskOwnerId = ownerid,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectOwnerID\nSelectOwnerID, SourceProject lookup(upper(replace(wbsItem,\"-\",\"\")) == upper(replace(sc_cpnumber,\"-\",\"\")),\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> LookupCPNumber\nFilterRiskWithoutProject select(mapColumn(\n\t\tSenseiProjectId = sensei_projectid,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectSenseiProject\nSelectSenseiProject, SourceSenseiRisk lookup(RiskId == sc_atomriskid,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> LookupRiskId\nLookupRiskId derive(SenseiRiskID = iifNull(sensei_riskid, uuid(), sensei_riskid)) ~> AddColumnRiskID\nAddColumnRiskID derive(SenseilRiskURL = $ARMURL+iif(equals(toString(ImpactBusinessAreaKey),'true'),\"1\", toString(businessAreaKey))+\"/impact/\"+ toString(ImpactKey)) ~> AddSenseiURL\nAddSenseiURL derive(SenseiTitle = substring(RiskTitle, 0, 100)) ~> AddSenseiTitle\nSelectLevelCurrent, SourceStringMap lookup(TargetDescription == SourceStringMap@value\n\t&& \"sc_pidleveltarget\" == SourceStringMap@attributename,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'right')~> LookupLevelTarget\nLookupLevelTarget select(mapColumn(\n\t\tSenseiLevelTarget = attributevalue,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectLevelTarget\nSourceARM filter(equals(toString(RiskRecordTypeKey),'1')) ~> FilterRisk\nLookupCPNumber filter(isNull(sensei_projectid)==false()) ~> FilterRiskWithoutProject\nAddSenseiTitle sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'json',\n\tfileSystem: 'apac-integration',\n\tfolderPath: 'ProjectRisk',\n\tpartitionFileNames:['ARMFinalRisk.json'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> SinkRisk"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Aero_dw_to_Staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Set ReportDate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Get aero_dw Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get aero_dw Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "Copy Aero_dw",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_aero_dw",
+											"type": "DatasetReference",
+											"parameters": {
+												"table_name": "@item().Aero_dw_Table",
+												"schema": "dbo"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_apac_lakehouse_aero_dw_staging",
+											"type": "DatasetReference",
+											"parameters": {
+												"tbl_name": "@item().Aero_dw_Table",
+												"file_name": "@toLower(concat(item().Aero_dw_Table,'_',variables('ReportDate')))"
+											}
+										}
+									]
+								},
+								{
+									"name": "LogAuditJobReadyToStart",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Copy Aero_dw",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"ReportDate": {
+												"value": "@variables('ReportDate')",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Ready to Start",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"JobName": {
+												"value": "@item().Aero_dw_Table",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Set ReportDate",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ReportDate",
+							"value": {
+								"value": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get aero_dw Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_aero_dw_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					}
+				},
+				"variables": {
+					"ReportDate": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Pattern/Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-21T05:45:39Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Bronze_to_Silver')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Control Table List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureDatabricksDeltaLakeSource",
+								"query": {
+									"value": "with jc_silver as (select distinct jobid  from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobconfig  where parametercode = 'layer'    and parametervalue = 'silver') select  distinct j.JobId, date(j.HighWaterMark) from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.job j inner join   @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.vw_job_run_details jrd on j.jobid = jrd.jobid and jrd.reportdate = '@{if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))}' inner join  jc_silver jc on jrd.jobid = jc.jobid inner join @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobstatus js on js.jobstatusid = jrd.jobstatus and trim(js.jobstatus) = 'Ready to Start'",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_meta_cotrol_tbl",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Table Loop",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "MarkJobsStarting",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Control Table List').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 3,
+							"activities": [
+								{
+									"name": "Bronze2Silver",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "LogAuditJobInProgress",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/BronzeToSilver') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@item().HighWaterMark",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobInProgress",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "In Progress",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobSuccess",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Bronze2Silver",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Completed OK",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"HighWaterMark": {
+												"value": "@if(equals(activity('Bronze2Silver').output.runOutput,'Z'),if(equals(pipeline().parameters.ReportDate,null),convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),\tpipeline().parameters.ReportDate)),activity('Bronze2Silver').output.runOutput)",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobFailure",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Bronze2Silver",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Failed",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "MarkJobsStarting",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Control Table List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greaterOrEquals(length(string(activity('Control Table List').output.value)),10)",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "LogAuditJobStart",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@string(activity('Control Table List').output.value)",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Starting",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ReportDate": {
+						"type": "string"
+					},
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					}
+				},
+				"variables": {
+					"rpt_date": {
+						"type": "String",
+						"defaultValue": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')"
+					}
+				},
+				"folder": {
+					"name": "Pattern"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-18T03:05:32Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_meta_cotrol_tbl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DataLake_to_Staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Copies JSON and CSV files from the data lake to lake house staging as PARQUET files ready for processing.",
+				"activities": [
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Set ReportDate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Get DataLake Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get DataLake Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "Copy and convert to Parquet",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/DatalakeToLanding')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"FileName": {
+												"value": "@item().FileName",
+												"type": "Expression"
+											},
+											"FilePath": {
+												"value": "@item().FilePath",
+												"type": "Expression"
+											},
+											"FileType": {
+												"value": "@item().FileType",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"SchemaPath": {
+												"value": "@item().SchemaPath",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@variables('ReportDate')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Set ReportDate",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ReportDate",
+							"value": {
+								"value": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get DataLake Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_datalake_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"ReportDate": {
+						"type": "String"
+					},
+					"FileTypeArray": {
+						"type": "Array"
+					}
+				},
+				"folder": {
+					"name": "Pattern/Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-21T05:45:39Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Maximo_Onprem_to_Staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Maximo Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_maximo_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Table Loop",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Maximo Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Set ReportDate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Maximo Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 2,
+							"activities": [
+								{
+									"name": "Copy Maximo",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_apac_onprem_maximo_tst",
+											"type": "DatasetReference",
+											"parameters": {
+												"tbl_name": {
+													"value": "@item().Maximo_Table",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_apac_lakehouse_maximo_staging",
+											"type": "DatasetReference",
+											"parameters": {
+												"tbl_name": {
+													"value": "@item().Maximo_Table",
+													"type": "Expression"
+												},
+												"file_name": {
+													"value": "@concat(item().Maximo_table,'_',variables('reportDate'))",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "Set ReportDate",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "reportDate",
+							"value": {
+								"value": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"reportDate": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "maximo"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_maximo_control')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Maximo_staging_to_Bronze')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Control Table List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureDatabricksDeltaLakeSource",
+								"query": {
+									"value": "with jc_bronze as (select distinct jobid  from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobconfig where parametercode = 'layer' and parametervalue = 'bronze'), exclude as (select distinct jobid  from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobconfig where parametercode = 'target_schema' and parametervalue = 'cat_bronze_mx_logicalenv') select j.jobid from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.job j inner join jc_bronze jc on j.jobid = jc.jobid and j.jobid in (select jobid from exclude)",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_meta_cotrol_tbl",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Table Loop",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Control Table List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Control Table List').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 5,
+							"activities": [
+								{
+									"name": "Staging2Bronze",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "LogAuditJobStart",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/StagingToBronze') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobStart",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "In Progress",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobSuccess",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Staging2Bronze",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Complete",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobFailure",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Staging2Bronze",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Failed",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					},
+					"ReportDate": {
+						"type": "string",
+						"defaultValue": "2022_02_17"
+					}
+				},
+				"folder": {
+					"name": "maximo"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_meta_cotrol_tbl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Silver_to_Gold')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Control Table List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureDatabricksDeltaLakeSource",
+								"query": {
+									"value": "with jc_gold as (  select distinct jobid  from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobconfig  where    parametercode = 'layer'    and parametervalue = 'gold') select  distinct j.JobId, date(j.HighWaterMark) from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.job j inner join   @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.vw_job_run_details jrd on j.jobid = jrd.jobid and jrd.reportdate = '@{if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))}' inner join  jc_gold jc on jrd.jobid = jc.jobid  inner join @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobstatus js on js.jobstatusid = jrd.jobstatus and trim(js.jobstatus) = 'Ready to Start'",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_meta_cotrol_tbl",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Table Loop",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "MarkJobsStarting",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Control Table List').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "Silver2Gold",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "LogAuditJobInProgress",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/SilverToGold')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobInProgress",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "In Progress",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobSuccess",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Silver2Gold",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Completed OK",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"HighWaterMark": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobFailure",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Silver2Gold",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails')",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Failed",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "MarkJobsStarting",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Control Table List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greaterOrEquals(length(string(activity('Control Table List').output.value)),10)",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "LogAuditJobStart",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@string(activity('Control Table List').output.value)",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Starting",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ReportDate": {
+						"type": "string"
+					},
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					}
+				},
+				"variables": {
+					"rpt_date": {
+						"type": "String",
+						"defaultValue": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')"
+					}
+				},
+				"folder": {
+					"name": "Pattern"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-18T03:05:32Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_meta_cotrol_tbl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Staging_to_Bronze')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Control Table List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureDatabricksDeltaLakeSource",
+								"query": {
+									"value": "select distinct j.JobId, replace(replace(replace(cast(j.HighWaterMark as string),' ' ,'t'),'-' ,'_'),':' ,'') as HighWaterMarkFileName  , NVL(left(replace( replace(right(extractfilename,17) ,'t' ,' '),'_' ,'-'),13) || ':' || left(right(replace( replace(right(extractfilename,17) ,'t' ,' '),'_' ,'-'),4),2) || ':' || right(extractfilename,2), from_utc_timestamp(current_timestamp(), 'Australia/Melbourne')  ) as NextHighWaterMarkTimeStamp, jrd.ExtractFileName from @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.job j inner join @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.vw_job_run_details jrd on j.jobid = jrd.jobid and jrd.reportdate = '@{if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))}' inner join  @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobstatus js on js.jobstatusid = jrd.jobstatus and trim(js.jobstatus) = 'Ready to Start' inner join  @{pipeline().parameters.AuditSchema}_@{pipeline().globalParameters.env}.jobconfig jc on jrd.jobid = jc.jobid and  parametercode = 'layer' and parametervalue = 'bronze'",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_meta_cotrol_tbl",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Table Loop",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "MarkJobsStarting",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Control Table List').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 12,
+							"activities": [
+								{
+									"name": "Staging2Bronze",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "GenerateDeltaFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/StagingToBronze') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"ExtractFileName": {
+												"value": "@item().ExtractFileName",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobInProgress",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "In Progress",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"ExtractFileName": {
+												"value": "@item().ExtractFileName",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobSuccess",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Staging2Bronze",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Completed OK",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"HighWaterMark": {
+												"value": "@item().NextHighWaterMarkTimeStamp",
+												"type": "Expression"
+											},
+											"ExtractFileName": {
+												"value": "@item().ExtractFileName",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobFailure",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Staging2Bronze",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Failed",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"ExtractFileName": {
+												"value": "@item().ExtractFileName",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "GenerateDeltaFile",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "LogAuditJobInProgress",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/GenerateDeltaFile') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"FULL_LOAD": {
+												"value": "@if(equals(pipeline().parameters.FULL_LOAD,null),'Z',pipeline().parameters.FULL_LOAD)",
+												"type": "Expression"
+											},
+											"PreviousReportDateOverride": {
+												"value": "@if(equals(pipeline().parameters.PreviousReportDateOverride,null),item().HighWaterMarkFileName,pipeline().parameters.PreviousReportDateOverride)",
+												"type": "Expression"
+											},
+											"ExtractFileName": {
+												"value": "@item().ExtractFileName",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LogAuditJobFailureDelta",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "GenerateDeltaFile",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@item().JobId",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Failed",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											},
+											"ExtractFileName": {
+												"value": "@item().ExtractFileName",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "MarkJobsStarting",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Control Table List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greaterOrEquals(length(string(activity('Control Table List').output.value)),10)",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "LogAuditJobStart",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"JobId": {
+												"value": "@string(activity('Control Table List').output.value)",
+												"type": "Expression"
+											},
+											"ReportDate": {
+												"value": "@if(equals(pipeline().parameters.ReportDate,null),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),if(equals(pipeline().parameters.ReportDate,'9999_12_31'),formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd'),pipeline().parameters.ReportDate))",
+												"type": "Expression"
+											},
+											"ADF_RunID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"Status": "Starting",
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"lakehouse_schema": {
+												"value": "@pipeline().parameters.AuditSchema",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ReportDate": {
+						"type": "string"
+					},
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					},
+					"FULL_LOAD": {
+						"type": "string"
+					},
+					"PreviousReportDateOverride": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"rpt_date": {
+						"type": "String",
+						"defaultValue": "@formatDateTime(convertFromUtc(utcnow(), 'AUS Eastern Standard Time'),'yyyy_MM_dd')"
+					}
+				},
+				"folder": {
+					"name": "Pattern"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-18T03:05:32Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_meta_cotrol_tbl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Xref_to_Staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Set ReportDate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Get Xref Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Xref Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 3,
+							"activities": [
+								{
+									"name": "Job Control Table",
+									"description": "Use the tablename passed from Control CSV to lookup the high water mark",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureDatabricksDeltaLakeSource",
+											"query": {
+												"value": "@concat('select HighWaterMark from ', pipeline().parameters.AuditSchema, '_', pipeline().globalParameters.env,'.job where JobName = ''',item().Xref_Table,'''')",
+												"type": "Expression"
+											}
+										},
+										"dataset": {
+											"referenceName": "ds_meta_cotrol_tbl",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"firstRowOnly": false
+									}
+								},
+								{
+									"name": "Set HighWaterMark",
+									"description": "",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Job Control Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "HighWaterMark",
+										"value": {
+											"value": "@split(string(json(string(activity('Job Control Table').output)).value),'\"')[3]",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set NextExtractDateTime",
+									"description": "Add the ExtractFrequencyMinutes to HighWaterMark to set target time for next extraction",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set HighWaterMark",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "NextExtractDateTime",
+										"value": {
+											"value": "@string(addminutes(formatDateTime(variables('HighWaterMark'),'yyyy-MM-ddTHH:mm:ss'), int(item().ExtractFrequencyMinutes)))",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "If Condition1",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Set NextExtractDateTime",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@greaterOrEquals(ticks(variables('ExtractDateTime')), ticks(variables('NextExtractDateTime')) )",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "Copy Xref",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 2,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "AzureSqlSource",
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_cross_reference",
+														"type": "DatasetReference",
+														"parameters": {
+															"schema": "dbo",
+															"table_name": "@item().Xref_Table"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_apac_lakehouse_xref_staging",
+														"type": "DatasetReference",
+														"parameters": {
+															"tbl_name": "@item().Xref_Table",
+															"file_name": {
+																"value": "@toLower(concat(item().Xref_Table,'_',formatDateTime(variables('ExtractDateTime'),'yyyy_MM_ddTHHmmss')))",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "LogAuditJobReadyToStart",
+												"type": "DatabricksNotebook",
+												"dependsOn": [
+													{
+														"activity": "Copy Xref",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"notebookPath": {
+														"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/Pattern/Update_JobRunDetails') ",
+														"type": "Expression"
+													},
+													"baseParameters": {
+														"ReportDate": {
+															"value": "@formatDateTime(variables('ExtractDateTime'),'yyyy_MM_dd')",
+															"type": "Expression"
+														},
+														"ADF_RunID": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"Status": "Ready to Start",
+														"env": {
+															"value": "@pipeline().globalParameters.env",
+															"type": "Expression"
+														},
+														"lakehouse_schema": {
+															"value": "@pipeline().parameters.AuditSchema",
+															"type": "Expression"
+														},
+														"JobName": {
+															"value": "@item().Xref_Table",
+															"type": "Expression"
+														},
+														"ExtractFileName": {
+															"value": "@toLower(concat(item().Xref_Table,'_',formatDateTime(variables('ExtractDateTime'),'yyyy_MM_ddTHHmmss')))",
+															"type": "Expression"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "Link_APAC_CAT_ADB",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Set ReportDate",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ExtractDateTime",
+							"value": {
+								"value": "@convertFromUtc(utcnow(), 'AUS Eastern Standard Time')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get Xref Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_xref_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"AuditSchema": {
+						"type": "string",
+						"defaultValue": "cat_lakehouse_metaverse"
+					}
+				},
+				"variables": {
+					"ExtractDateTime": {
+						"type": "String"
+					},
+					"HighWaterMark": {
+						"type": "String"
+					},
+					"NextExtractDateTime": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Pattern/Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-21T05:45:39Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_xref_control')]",
+				"[concat(variables('factoryId'), '/datasets/ds_meta_cotrol_tbl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_aero_dw_tables_init')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Aero_dw Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_aero_dw_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Aero_dw Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Aero_dw Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/bronze_table_init.py') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"cat_schema": "CAT_BRONZE_FO_DEV01",
+											"table_name": {
+												"value": "@item().Aero_dw_Table",
+												"type": "Expression"
+											},
+											"initial_file_name": {
+												"value": "@toLower(concat(item().Aero_dw_Table,'_',formatDateTime(utcnow(),'yyyy_MM_dd')))",
+												"type": "Expression"
+											},
+											"lakehouse_schema": "cat_lakehouse_metaverse_dev01",
+											"other": "aero_dw"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Initialise"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-25T04:31:02Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_datalake_tables_init')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get DataLake Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_datalake_control",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Loop all Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get DataLake Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get DataLake Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 1,
+							"activities": [
+								{
+									"name": "intial_script",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": {
+											"value": "@concat('/Users/svc_datalakehouse_',pipeline().globalParameters.env, '@apam.onmicrosoft.com/metaHouse/bronze_table_init.py') ",
+											"type": "Expression"
+										},
+										"baseParameters": {
+											"cat_schema": "CAT_BRONZE_FO_DEV01",
+											"table_name": {
+												"value": "@item().FileName",
+												"type": "Expression"
+											},
+											"initial_file_name": {
+												"value": "@toLower(concat(item().FileName,'_',formatDateTime(utcnow(),'yyyy_MM_dd')))",
+												"type": "Expression"
+											},
+											"lakehouse_schema": "cat_lakehouse_metaverse_dev01",
+											"other": "data_lake"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "Link_APAC_CAT_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Initialise"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-25T04:31:02Z"
+			},
+			"dependsOn": []
+		}
+	]
+}

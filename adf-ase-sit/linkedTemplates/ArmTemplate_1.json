@@ -1,0 +1,1092 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ase-sit"
+		},
+		"Link_APAC_CAT_ARM_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'Link_APAC_CAT_ARM'"
+		},
+		"Link_APAC_CAT_Xref_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Link_APAC_CAT_Xref'"
+		},
+		"Link_APAC_CAT_ARM_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://apac.activeriskmanager.com/armapi/inst/2/ba/1/"
+		},
+		"Link_APAC_CAT_ARM_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "test"
+		},
+		"Link_APAC_CAT_CE_Dataverse_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		},
+		"Link_APAC_CAT_Control_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{concat('https://controllakehouse',linkedService().region,linkedService().env,'.dfs.core.windows.net')}"
+		},
+		"Link_APAC_CAT_Control_properties_typeProperties_tenant": {
+			"type": "string",
+			"defaultValue": "3f1f92c1-3232-46bb-b79d-8fe22e40c73c"
+		},
+		"Link_APAC_CAT_Control_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://apac-fo-uat.sandbox.operations.dynamics.com/data"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_tenant": {
+			"type": "string",
+			"defaultValue": "3f1f92c1-3232-46bb-b79d-8fe22e40c73c"
+		},
+		"Link_APAC_CAT_FnO_properties_typeProperties_aadResourceId": {
+			"type": "string",
+			"defaultValue": "https://apac-fo-uat.sandbox.operations.dynamics.com"
+		},
+		"Link_APAC_CAT_Staging_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{concat('https://staginglakehouse',linkedService().region,linkedService().env,'.dfs.core.windows.net')}"
+		},
+		"Link_APAC_CAT_Staging_properties_typeProperties_tenant": {
+			"type": "string",
+			"defaultValue": "3f1f92c1-3232-46bb-b79d-8fe22e40c73c"
+		},
+		"Link_APAC_CAT_Staging_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "a69effca-15c7-4285-b005-391b39bb6c1a"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_ARM')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('Link_APAC_CAT_ARM_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Basic",
+					"userName": "[parameters('Link_APAC_CAT_ARM_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Link_APAC_CAT_ARM_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_CE_Dataverse')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "CommonDataServiceForApps",
+				"typeProperties": {
+					"deploymentType": "Online",
+					"serviceUri": "https://apac-ce-uat.crm6.dynamics.com/",
+					"authenticationType": "AADServicePrincipal",
+					"servicePrincipalCredentialType": "ServicePrincipalKey",
+					"servicePrincipalId": "[parameters('Link_APAC_CAT_CE_Dataverse_properties_typeProperties_servicePrincipalId')]",
+					"servicePrincipalCredential": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "Link_APAC_CAT_KV",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "apac-sp-datalakehouse-clientsecret-sit"
+					}
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_Control')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"env": {
+						"type": "string",
+						"defaultValue": "sit"
+					},
+					"region": {
+						"type": "string",
+						"defaultValue": "ase"
+					}
+				},
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('Link_APAC_CAT_Control_properties_typeProperties_url')]",
+					"tenant": "[parameters('Link_APAC_CAT_Control_properties_typeProperties_tenant')]",
+					"servicePrincipalId": "[parameters('Link_APAC_CAT_Control_properties_typeProperties_servicePrincipalId')]",
+					"servicePrincipalCredentialType": "ServicePrincipalKey",
+					"servicePrincipalCredential": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "Link_APAC_CAT_KV",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"env": "sit"
+							}
+						},
+						"secretName": "apac-sp-datalakehouse-clientsecret-sit"
+					}
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_Deltalake')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricksDeltaLake",
+				"typeProperties": {
+					"domain": "https://adb-6109327156885175.15.azuredatabricks.net/",
+					"clusterId": "0416-050139-8f18pr40",
+					"workspaceResourceId": "/subscriptions/1ae9904e-ee8d-4adc-a68a-f2e0a73c2013/resourceGroups/rg-apac-compute-ase-sit/providers/Microsoft.Databricks/workspaces/adb-ase-sit"
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_FnO')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('Link_APAC_CAT_FnO_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "AadServicePrincipal",
+					"servicePrincipalId": "[parameters('Link_APAC_CAT_FnO_properties_typeProperties_servicePrincipalId')]",
+					"servicePrincipalKey": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "Link_APAC_CAT_KV",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"env": "sit"
+							}
+						},
+						"secretName": "apac-sp-datalakehouse-clientsecret-sit"
+					},
+					"tenant": "[parameters('Link_APAC_CAT_FnO_properties_typeProperties_tenant')]",
+					"aadResourceId": "[parameters('Link_APAC_CAT_FnO_properties_typeProperties_aadResourceId')]"
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_Staging')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"env": {
+						"type": "string",
+						"defaultValue": "sit"
+					},
+					"region": {
+						"type": "string",
+						"defaultValue": "ase"
+					}
+				},
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('Link_APAC_CAT_Staging_properties_typeProperties_url')]",
+					"tenant": "[parameters('Link_APAC_CAT_Staging_properties_typeProperties_tenant')]",
+					"servicePrincipalId": "[parameters('Link_APAC_CAT_Staging_properties_typeProperties_servicePrincipalId')]",
+					"servicePrincipalCredentialType": "ServicePrincipalKey",
+					"servicePrincipalCredential": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "Link_APAC_CAT_KV",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"env": "sit"
+							}
+						},
+						"secretName": "apac-sp-datalakehouse-clientsecret-sit"
+					}
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Link_APAC_CAT_Xref')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('Link_APAC_CAT_Xref_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "apac-azure-ir-sit",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_aero_dw_control')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Control",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"folder": {
+					"name": "aero_dw"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "aero_dw_control_tbl.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Dataverse_Table0",
+						"type": "String"
+					},
+					{
+						"name": "Dataverse_Table1",
+						"type": "String"
+					},
+					{
+						"name": "High_WaterMark",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Control')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_dataverse')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_CE_Dataverse",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"entity_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "customer_engagement"
+				},
+				"annotations": [],
+				"type": "CommonDataServiceForAppsEntity",
+				"schema": [],
+				"typeProperties": {
+					"entityName": {
+						"value": "@dataset().entity_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_CE_Dataverse')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_fno')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_FnO",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"entity": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "finance"
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {
+					"relativeUrl": {
+						"value": "@concat(dataset().entity,'?cross-company=true')",
+						"type": "Expression"
+					}
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_FnO')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_lakehouse_aero_dw_staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"tbl_name": {
+						"type": "string"
+					},
+					"file_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "aero_dw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@concat('aero_dw','/',dataset().tbl_name)",
+							"type": "Expression"
+						},
+						"fileSystem": "staging"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_lakehouse_ce_staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"tbl_name": {
+						"type": "string"
+					},
+					"file_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "customer_engagement"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@concat('customer_engagement','/',dataset().tbl_name)",
+							"type": "Expression"
+						},
+						"fileSystem": "staging"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_lakehouse_finance_staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"tbl_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "finance"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@concat('finance','/',dataset().tbl_name)",
+							"type": "Expression"
+						},
+						"fileSystem": "staging"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_lakehouse_maximo_staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"tbl_name": {
+						"type": "string"
+					},
+					"file_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "maximo"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@concat('maximo','/',dataset().tbl_name)",
+							"type": "Expression"
+						},
+						"fileSystem": "staging"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_lakehouse_xref_staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"tbl_name": {
+						"type": "string"
+					},
+					"file_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "cross_reference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@concat('xref','/',dataset().tbl_name)",
+							"type": "Expression"
+						},
+						"fileSystem": "staging"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_apac_sensei')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_CE_Dataverse",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "integration/projects"
+				},
+				"annotations": [],
+				"type": "CommonDataServiceForAppsEntity",
+				"schema": [],
+				"typeProperties": {
+					"entityName": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_CE_Dataverse')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_arm_json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Staging",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					},
+					"DirectoryName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "integration/projects"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().DirectoryName",
+							"type": "Expression"
+						},
+						"fileSystem": "apac-integration"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"RiskCause": {
+							"type": "string"
+						},
+						"RiskDescription": {
+							"type": "string"
+						},
+						"RiskEffect": {
+							"type": "string"
+						},
+						"RiskId": {
+							"type": "integer"
+						},
+						"RiskKey": {
+							"type": "integer"
+						},
+						"RiskPhase": {
+							"type": "string"
+						},
+						"RiskRecordTypeKey": {
+							"type": "integer"
+						},
+						"RiskSource": {
+							"type": "string"
+						},
+						"RiskStatus": {
+							"type": "string"
+						},
+						"RiskTitle": {
+							"type": "string"
+						},
+						"ImpactRiskId": {
+							"type": "integer"
+						},
+						"ImpactBusinessAreaKey": {
+							"type": "boolean"
+						},
+						"ImpactItemKey": {
+							"type": "integer"
+						},
+						"ImpactKey": {
+							"type": "integer"
+						},
+						"ImpactScoringScheme": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"ImpactRiskKey": {
+							"type": "integer"
+						},
+						"ImpactName": {
+							"type": "string"
+						},
+						"PlanKey": {
+							"type": "integer"
+						},
+						"PlanName": {
+							"type": "string"
+						},
+						"PlanStrategy": {
+							"type": "string"
+						},
+						"PlanlastName": {
+							"type": "string"
+						},
+						"CurrentDescription": {
+							"type": "string"
+						},
+						"CurrentRiskScore": {
+							"type": "number"
+						},
+						"CurrentColorRef": {
+							"type": "string"
+						},
+						"TargetDescription": {
+							"type": "string"
+						},
+						"TargetRiskScore": {
+							"type": "number"
+						},
+						"TargetColorRef": {
+							"type": "string"
+						},
+						"AssessmentKey": {
+							"type": "integer"
+						},
+						"budgetForTime": {
+							"type": "integer"
+						},
+						"businessAreaKey": {
+							"type": "boolean"
+						},
+						"expectedDuration": {
+							"type": "integer"
+						},
+						"isSummaryTask": {
+							"type": "boolean"
+						},
+						"item": {
+							"type": "object",
+							"properties": {
+								"budgetForCost": {
+									"type": "number"
+								},
+								"businessAreaKey": {
+									"type": "boolean"
+								},
+								"caveatKey": {
+									"type": "integer"
+								},
+								"classificationsKey": {
+									"type": "integer"
+								},
+								"configurationKey": {
+									"type": "integer"
+								},
+								"currencyKey": {
+									"type": "boolean"
+								},
+								"description": {
+									"type": "string"
+								},
+								"distributionKey": {
+									"type": "integer"
+								},
+								"expectedCost": {
+									"type": "number"
+								},
+								"itemTypeKey": {
+									"type": "integer"
+								},
+								"key": {
+									"type": "integer"
+								},
+								"maximumCost": {
+									"type": "number"
+								},
+								"minimumCost": {
+									"type": "number"
+								},
+								"name": {
+									"type": "string"
+								},
+								"nodeStatusKey": {
+									"type": "integer"
+								},
+								"ownerKey": {
+									"type": "integer"
+								},
+								"plannedCost": {
+									"type": "number"
+								},
+								"planningApplicationKey": {
+									"type": "integer"
+								},
+								"reviewPeriod": {
+									"type": "integer"
+								},
+								"scoringSchemeGroupKey": {
+									"type": "integer"
+								},
+								"treeTypeKey": {
+									"type": "boolean"
+								}
+							}
+						},
+						"itemKey": {
+							"type": "integer"
+						},
+						"manualOverride": {
+							"type": "number"
+						},
+						"maximumDuration": {
+							"type": "boolean"
+						},
+						"minimumDuration": {
+							"type": "boolean"
+						},
+						"percentageComplete": {
+							"type": "number"
+						},
+						"plannedDuration": {
+							"type": "integer"
+						},
+						"provisionType1": {
+							"type": "number"
+						},
+						"provisionType2": {
+							"type": "number"
+						},
+						"statusKey": {
+							"type": "integer"
+						},
+						"totalProvision": {
+							"type": "number"
+						},
+						"wbsItem": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_cross_reference')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Xref",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"schema": {
+						"type": "string",
+						"defaultValue": "dbo"
+					},
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "cross_reference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ID",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "Company",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SourceSystemCode",
+						"type": "nvarchar"
+					},
+					{
+						"name": "TargetSystemCode",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RecordType",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SourceCode",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SourceSubCode",
+						"type": "nvarchar"
+					},
+					{
+						"name": "TargetCode",
+						"type": "nvarchar"
+					},
+					{
+						"name": "Description",
+						"type": "nvarchar"
+					},
+					{
+						"name": "EffectiveDate",
+						"type": "datetimeoffset",
+						"scale": 7
+					},
+					{
+						"name": "ExpiryDate",
+						"type": "datetimeoffset",
+						"scale": 7
+					}
+				],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Xref')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datalake_control')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Control",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"folder": {
+					"name": "data_lake"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "datalake_control_tbl.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "FileName",
+						"type": "String"
+					},
+					{
+						"name": "Container",
+						"type": "String"
+					},
+					{
+						"name": "FilePath",
+						"type": "String"
+					},
+					{
+						"name": "SchemaPath",
+						"type": "String"
+					},
+					{
+						"name": "FileType",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Control')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_dataverse_control')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Link_APAC_CAT_Control",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"env": "sit",
+						"region": "ase"
+					}
+				},
+				"folder": {
+					"name": "customer_engagement"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "dataverse_control_tbl.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Dataverse_Table0",
+						"type": "String"
+					},
+					{
+						"name": "Dataverse_Table1",
+						"type": "String"
+					},
+					{
+						"name": "High_WaterMark",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Link_APAC_CAT_Control')]"
+			]
+		}
+	]
+}
